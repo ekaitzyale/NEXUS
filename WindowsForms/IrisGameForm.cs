@@ -289,7 +289,7 @@ public sealed class IrisGameForm : Form
         var area = ButtonArea();
         var summary = new Label
         {
-            Text = $"PA DISPONIBLES: {remainingPa}     |     ATAQUES: {actions.Count(a => a == "ATACAR")}     DEFENSAS: {actions.Count(a => a == "DEFENDER")}     RESERVAS: {actions.Count(a => a == "RESERVAR")}     KITS: {kits}",
+            Text = $"PA DISPONIBLES: {remainingPa}     |     ATAQUES: {actions.Count(a => a == "ATACAR")}     DEFENSAS: {actions.Count(a => a == "DEFENDER")}     RESERVAS: {actions.Count(a => a == "RESERVAR")}     KITS: {kits}     JARVIS: {jarvisCharges}/6",
             ForeColor = Cyan, Font = bodyFont, AutoSize = true, Margin = new Padding(12)
         };
         area.Controls.Add(summary);
@@ -300,11 +300,16 @@ public sealed class IrisGameForm : Form
             remainingPa--;
             Combat();
         }
-        if (room == 2 && jarvisCharges > 0 && !tutorialJarvisUsed)
-            area.Controls.Add(ActionButton("JARVIS · +5 PA ESPECIALES (TUTORIAL)", (_, _) => { jarvisCharges--; tutorialJarvisUsed = true; remainingPa += 5; Combat(); }));
+        if (jarvisCharges > 0)
+            area.Controls.Add(ActionButton($"JARVIS · PA ESPECIALES ({jarvisCharges})", (_, _) => JarvisSelector()));
         if (remainingPa > 0)
         {
-            if (kits > 0 && hp < 100) area.Controls.Add(ActionButton("USAR KIT · 1 PA (+30 HP)", (_, _) => Choose("KIT")));
+            if (kits > actions.Count(a => a == "KIT"))
+            {
+                var kit = ActionButton("USAR KIT · 1 PA (+30 HP)", (_, _) => Choose("KIT"));
+                kit.Enabled = hp < 100;
+                area.Controls.Add(kit);
+            }
             area.Controls.Add(ActionButton("ATACAR · 1 PA", (_, _) => Choose("ATACAR")));
             area.Controls.Add(ActionButton("DEFENDER · 1 PA", (_, _) => Choose("DEFENDER")));
             area.Controls.Add(ActionButton("RESERVAR · 1 PA", (_, _) => Choose("RESERVAR")));
@@ -317,7 +322,42 @@ public sealed class IrisGameForm : Form
                 Combat();
             }));
         if (remainingPa == 0)
-            area.Controls.Add(ActionButton("CONFIRMAR TURNO", (_, _) => { if (!tutorialJarvisUsed) { Notice("TUTORIAL: activa primero la habilidad especial de JARVIS."); return; } ResolveCombat(); }));
+            area.Controls.Add(ActionButton("CONFIRMAR TURNO", (_, _) => { if (room == 2 && !tutorialJarvisUsed) { Notice("TUTORIAL: utiliza al menos un PA especial de JARVIS."); return; } ResolveCombat(); }));
+    }
+
+    private void JarvisSelector()
+    {
+        using var dialog = new Form { Text = "NEXUS · JARVIS", ClientSize = new Size(450, 330),
+            StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false, BackColor = Background, ForeColor = Color.White };
+        int selected = 0;
+        var info = new Label { Text = "Selecciona las cargas una por una. Cada carga concede +1 PA.",
+            Dock = DockStyle.Top, Height = 75, ForeColor = Muted, TextAlign = ContentAlignment.MiddleCenter };
+        var count = new Label { Dock = DockStyle.Top, Height = 55, ForeColor = Cyan,
+            Font = new Font("Segoe UI", 18, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter };
+        void UpdateCount() => count.Text = $"PA seleccionados: {selected} / {jarvisCharges}";
+        UpdateCount();
+        var area = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), AutoScroll = true };
+        foreach (var (title, change) in new[] { ("+ 1 PA", 1), ("- 1 PA", -1) })
+        {
+            var button = ActionButton(title, (_, _) => { selected = Math.Clamp(selected + change, 0, jarvisCharges); UpdateCount(); });
+            button.Width = 195;
+            area.Controls.Add(button);
+        }
+        var confirm = ActionButton("CONFIRMAR", (_, _) => { if (selected > 0) dialog.DialogResult = DialogResult.OK; });
+        confirm.Width = 195;
+        var cancel = ActionButton("CANCELAR", (_, _) => dialog.DialogResult = DialogResult.Cancel);
+        cancel.Width = 195;
+        area.Controls.Add(confirm);
+        area.Controls.Add(cancel);
+        dialog.Controls.Add(area);
+        dialog.Controls.Add(count);
+        dialog.Controls.Add(info);
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        jarvisCharges -= selected;
+        remainingPa += selected;
+        tutorialJarvisUsed = true;
+        Combat();
     }
 
     private void ResolveCombat()
