@@ -17,7 +17,7 @@ public sealed class IrisGameForm : Form
     private readonly Label footer = new() { Dock = DockStyle.Bottom, Height = 38, ForeColor = Cyan, TextAlign = ContentAlignment.MiddleCenter };
     private GameBoard? board;
     private int progress, room = 1, x = 1, y = 3, hp = 100, kits;
-    private bool robotDefeated, circuitRestored;
+    private bool robotDefeated, circuitRestored, tutorialJarvisUsed;
     private int remainingPa, robotHp, robotReservedPa, turnNumber, jarvisCharges = 6;
     private readonly List<string> actions = new();
     private readonly string[] rooms = { "MANTENIMIENTO", "ENTRENAMIENTO", "ACCESO PRINCIPAL" };
@@ -155,7 +155,7 @@ public sealed class IrisGameForm : Form
 
     private void Introduction()
     {
-        room = 1; x = 1; y = 3; hp = 100; kits = 0; robotDefeated = circuitRestored = false; jarvisCharges = 6;
+        room = 1; x = 1; y = 3; hp = 100; kits = 0; robotDefeated = circuitRestored = tutorialJarvisUsed = false; jarvisCharges = 6;
         Page("FASE 0 · TUTORIAL", "INTRODUCCIÓN");
         var narrative = new Label { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter,
             Padding = new Padding(65), Font = new Font("Segoe UI", 17), ForeColor = Muted,
@@ -300,6 +300,8 @@ public sealed class IrisGameForm : Form
             remainingPa--;
             Combat();
         }
+        if (room == 2 && jarvisCharges > 0 && !tutorialJarvisUsed)
+            area.Controls.Add(ActionButton("JARVIS · +5 PA ESPECIALES (TUTORIAL)", (_, _) => { jarvisCharges--; tutorialJarvisUsed = true; remainingPa += 5; Combat(); }));
         if (remainingPa > 0)
         {
             if (kits > 0 && hp < 100) area.Controls.Add(ActionButton("USAR KIT · 1 PA (+30 HP)", (_, _) => Choose("KIT")));
@@ -315,7 +317,7 @@ public sealed class IrisGameForm : Form
                 Combat();
             }));
         if (remainingPa == 0)
-            area.Controls.Add(ActionButton("CONFIRMAR TURNO", (_, _) => ResolveCombat()));
+            area.Controls.Add(ActionButton("CONFIRMAR TURNO", (_, _) => { if (!tutorialJarvisUsed) { Notice("TUTORIAL: activa primero la habilidad especial de JARVIS."); return; } ResolveCombat(); }));
     }
 
     private void ResolveCombat()
@@ -408,6 +410,7 @@ public sealed class IrisGameForm : Form
     {
         Page("FASE 0 COMPLETADA", "SISTEMAS DE ACCESO RESTABLECIDOS");
         var area = ButtonArea();
+        area.Controls.Add(ActionButton("CONTINUAR · FASE 1 (EN DESARROLLO)", (_, _) => Notice("La Fase 1 todavía no está implementada. No se puede avanzar aún.")));
         area.Controls.Add(ActionButton("VOLVER AL MENÚ", (_, _) => Menu()));
     }
 
