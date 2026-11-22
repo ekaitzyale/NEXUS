@@ -16,9 +16,9 @@ public sealed class CircuitPuzzle : Form
     public CircuitPuzzle()
     {
         Text = "NEXUS · PANEL DE ENERGÍA";
-        ClientSize = new Size(570, 625);
-        MinimumSize = new Size(570, 625);
-        MaximumSize = new Size(570, 625);
+        ClientSize = new Size(610, 720);
+        MinimumSize = new Size(610, 720);
+        MaximumSize = new Size(610, 720);
         StartPosition = FormStartPosition.CenterParent;
         BackColor = Color.FromArgb(7, 15, 29);
         ForeColor = Color.White;
@@ -33,13 +33,20 @@ public sealed class CircuitPuzzle : Form
             Dock = DockStyle.Top, Height = 45 };
         Controls.Add(help);
         var grid = new TableLayoutPanel { ColumnCount = 5, RowCount = 5, Size = new Size(475, 425),
-            Location = new Point(47, 128), CellBorderStyle = TableLayoutPanelCellBorderStyle.Single };
+            Location = new Point(67, 160), CellBorderStyle = TableLayoutPanelCellBorderStyle.Single };
         for (int i = 0; i < 5; i++)
         {
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
             grid.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
         }
         Controls.Add(grid);
+        var source = new Label { Text = "ENTRADA →", ForeColor = Color.LimeGreen, TextAlign = ContentAlignment.MiddleRight };
+        source.SetBounds(0, 355, 67, 25); Controls.Add(source);
+        var target = new Label { Text = "→ SALIDA", ForeColor = Color.Gold, TextAlign = ContentAlignment.MiddleLeft };
+        target.SetBounds(542, 355, 68, 25); Controls.Add(target);
+        var tip = new Label { Text = "Conecta la casilla central izquierda con la central derecha.\nLas piezas conectadas a la energía se iluminan.",
+            ForeColor = Color.LightSteelBlue, TextAlign = ContentAlignment.MiddleCenter };
+        tip.SetBounds(40, 600, 530, 60); Controls.Add(tip);
         // Guaranteed solvable route; the rest are decoy connections.
         var solution = new int[5, 5];
         solution[2, 0] = West | East;
@@ -67,7 +74,7 @@ public sealed class CircuitPuzzle : Form
         feedback.Text = "ENERGÍA: DESCONECTADA";
         feedback.ForeColor = Color.Orange;
         feedback.TextAlign = ContentAlignment.MiddleCenter;
-        feedback.SetBounds(45, 565, 480, 35);
+        feedback.SetBounds(55, 666, 500, 35);
         Controls.Add(feedback);
         DrawTiles();
     }
@@ -80,8 +87,15 @@ public sealed class CircuitPuzzle : Form
     };
     private void DrawTiles()
     {
+        var powered = PoweredTiles();
         for (int row = 0; row < 5; row++)
-        for (int col = 0; col < 5; col++) tiles[row, col].Text = Symbol(pieces[row, col]);
+        for (int col = 0; col < 5; col++)
+        {
+            tiles[row, col].Text = Symbol(pieces[row, col]);
+            bool lit = powered[row, col];
+            tiles[row, col].BackColor = lit ? Color.FromArgb(12, 105, 111) : Color.FromArgb(18, 39, 60);
+            tiles[row, col].ForeColor = lit ? Color.White : Color.FromArgb(83, 220, 246);
+        }
         if (!Connected()) return;
         Solved = true;
         feedback.Text = "CIRCUITO RESTABLECIDO";
@@ -89,6 +103,28 @@ public sealed class CircuitPuzzle : Form
         DialogResult = DialogResult.OK;
         Close();
     }
+    private bool[,] PoweredTiles()
+    {
+        var seen = new bool[5, 5];
+        if ((pieces[2, 0] & West) == 0) return seen;
+        var queue = new Queue<(int r, int c)>();
+        queue.Enqueue((2, 0)); seen[2, 0] = true;
+        (int dr, int dc, int bit, int opposite)[] dirs =
+        { (-1, 0, North, South), (0, 1, East, West), (1, 0, South, North), (0, -1, West, East) };
+        while (queue.Count > 0)
+        {
+            var (r, c) = queue.Dequeue();
+            foreach (var (dr, dc, bit, opposite) in dirs)
+            {
+                int nr = r + dr, nc = c + dc;
+                if (nr < 0 || nr >= 5 || nc < 0 || nc >= 5 || seen[nr, nc]) continue;
+                if ((pieces[r, c] & bit) == 0 || (pieces[nr, nc] & opposite) == 0) continue;
+                seen[nr, nc] = true; queue.Enqueue((nr, nc));
+            }
+        }
+        return seen;
+    }
+
     private bool Connected()
     {
         if ((pieces[2, 0] & West) == 0 || (pieces[2, 4] & East) == 0) return false;
