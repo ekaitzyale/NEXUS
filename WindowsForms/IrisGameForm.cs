@@ -359,18 +359,39 @@ public sealed class IrisGameForm : Form
         hp -= received;
         int nextPa = 3 + playerReserved;
         int nextRobotPa = 3 + robotReservedPa;
-        string report =
-            $"TURNO {turnNumber} · RESULTADOS\n\n" +
-            $"CADETE: ATACAR ×{playerAttacks} · DEFENDER ×{playerDefenses} · RESERVAR ×{playerReserved} · KIT ×{usedKits}\n" +
-            $"ROBOT: ATACAR ×{robotAttacks} · DEFENDER ×{robotDefenses} · RESERVAR ×{robotReservedPa}\n\n" +
-            $"Ataques bloqueados: Cadete {Math.Min(robotAttacks, playerDefenses)} · Robot {Math.Min(playerAttacks, robotDefenses)}\n" +
-            $"Daño causado: {dealt} · Daño recibido: {received} · Curación: +{healing}\n" +
-            $"Vida Cadete: {hp}/100 · Vida Robot: {robotHp}/40\n" +
-            $"PA siguiente turno: Cadete {nextPa} · Robot {nextRobotPa}";
         Page("RESULTADO DEL TURNO", "RESOLUCIÓN TÁCTICA");
-        var content = new Label { Text = report, Dock = DockStyle.Fill, Font = new Font("Segoe UI", 14),
-            ForeColor = Muted, Padding = new Padding(50, 20, 50, 20), TextAlign = ContentAlignment.TopCenter };
-        root.Controls.Add(content);
+        var results = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3,
+            Padding = new Padding(36, 12, 36, 12), BackColor = Background };
+        results.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        results.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        results.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
+        results.RowStyles.Add(new RowStyle(SizeType.Percent, 32));
+        results.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
+        Label ResultCard(string heading, string details, Color accent)
+        {
+            return new Label { Text = heading + "\n\n" + details, Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 14, FontStyle.Bold), ForeColor = accent,
+                BackColor = Surface, TextAlign = ContentAlignment.MiddleCenter, Margin = new Padding(9),
+                BorderStyle = BorderStyle.FixedSingle };
+        }
+        results.Controls.Add(ResultCard("CADETE · TURNO " + turnNumber,
+            $"⚔ ATACAR: {playerAttacks}\n🛡 DEFENDER: {playerDefenses}\n↗ RESERVAR: {playerReserved}\n✚ KIT: {usedKits}",
+            Cyan), 0, 0);
+        results.Controls.Add(ResultCard("ROBOT DE SEGURIDAD",
+            $"⚔ ATACAR: {robotAttacks}\n🛡 DEFENDER: {robotDefenses}\n↗ RESERVAR: {robotReservedPa}",
+            Color.FromArgb(244, 119, 125)), 1, 0);
+        results.Controls.Add(ResultCard("DAÑO Y CURACIÓN",
+            $"Infligido: {dealt} HP    Recibido: {received} HP\nCuración: +{healing} HP\nBloqueos: Cadete {Math.Min(robotAttacks, playerDefenses)} · Robot {Math.Min(playerAttacks, robotDefenses)}",
+            Color.White), 0, 1);
+        results.Controls.Add(ResultCard("ESTADO ACTUAL",
+            $"Cadete: {hp}/100 HP    Robot: {robotHp}/40 HP\nPróximo turno: Cadete {nextPa} PA · Robot {nextRobotPa} PA",
+            Color.White), 1, 1);
+        var hint = new Label { Text = "Revisa las acciones de ambos combatientes y pulsa CONTINUAR cuando estés listo.",
+            Dock = DockStyle.Fill, ForeColor = Muted, TextAlign = ContentAlignment.MiddleCenter };
+        results.Controls.Add(hint, 0, 2);
+        results.SetColumnSpan(hint, 2);
+        root.Controls.Add(results);
+        results.BringToFront();
         var bottom = new Panel { Dock = DockStyle.Bottom, Height = 85 };
         var next = ActionButton("CONTINUAR", (_, _) =>
         {
