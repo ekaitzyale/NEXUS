@@ -40,10 +40,10 @@ public sealed class CircuitPuzzle : Form
             grid.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
         }
         Controls.Add(grid);
-        var source = new Label { Text = "ENTRADA →", ForeColor = Color.LimeGreen, TextAlign = ContentAlignment.MiddleRight };
-        source.SetBounds(0, 355, 67, 25); Controls.Add(source);
-        var target = new Label { Text = "→ SALIDA", ForeColor = Color.Gold, TextAlign = ContentAlignment.MiddleLeft };
-        target.SetBounds(542, 355, 68, 25); Controls.Add(target);
+        var source = new Label { Text = "● ENTRADA  →  FILA CENTRAL", ForeColor = Color.LimeGreen, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
+        source.SetBounds(67, 127, 245, 28); Controls.Add(source);
+        var target = new Label { Text = "FILA CENTRAL  →  SALIDA ●", ForeColor = Color.Gold, TextAlign = ContentAlignment.MiddleRight, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
+        target.SetBounds(312, 127, 230, 28); Controls.Add(target);
         var tip = new Label { Text = "Conecta la casilla central izquierda con la central derecha.\nLas piezas conectadas a la energía se iluminan.",
             ForeColor = Color.LightSteelBlue, TextAlign = ContentAlignment.MiddleCenter };
         tip.SetBounds(40, 600, 530, 60); Controls.Add(tip);
