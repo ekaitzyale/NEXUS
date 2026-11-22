@@ -199,20 +199,21 @@ public sealed class IrisGameForm : Form
         int tile = Math.Max(35, Math.Min((board.ClientSize.Width - 100) / 9, (board.ClientSize.Height - 45) / 7));
         int left = (board.ClientSize.Width - tile * 9) / 2;
         int top = (board.ClientSize.Height - tile * 7) / 2;
-        using var floor = new SolidBrush(Surface);
+        using var floor = new SolidBrush(Color.FromArgb(18, 33, 52));
+        using var wall = new SolidBrush(Color.FromArgb(32, 49, 70));
         using var gridPen = new Pen(Color.FromArgb(46, 75, 102));
         for (int ix = 0; ix < 9; ix++)
         for (int iy = 0; iy < 7; iy++)
         {
             var r = new Rectangle(left + ix * tile, top + iy * tile, tile, tile);
-            e.Graphics.FillRectangle(floor, r);
+            e.Graphics.FillRectangle(ix == 0 || ix == 8 || iy == 0 || iy == 6 ? wall : floor, r);
             e.Graphics.DrawRectangle(gridPen, r);
         }
         void Marker(int px, int py, Color color, string label)
         {
             var r = new Rectangle(left + px * tile + tile / 5, top + py * tile + tile / 5, tile * 3 / 5, tile * 3 / 5);
             using var brush = new SolidBrush(color);
-            e.Graphics.FillEllipse(brush, r);
+            e.Graphics.FillRectangle(brush, r);
             using var font = new Font("Segoe UI", Math.Max(10, tile / 5), FontStyle.Bold);
             TextRenderer.DrawText(e.Graphics, label, font, r, Color.White,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
@@ -221,8 +222,25 @@ public sealed class IrisGameForm : Form
         if (room == 2 && !robotDefeated) Marker(5, 3, Color.Firebrick, "R");
         if (room == 3 && !circuitRestored) Marker(5, 3, Color.DarkOrange, "C");
         Marker(7, 3, Color.MediumPurple, ">");
-        Marker(Math.Max(0, x - 1), y, Color.Teal, "J");
-        Marker(x, y, Cyan, "C");
+        DrawOrb(e.Graphics, left + Math.Max(0, x - 1) * tile + tile / 2, top + y * tile + tile / 2, tile);
+        DrawCadet(e.Graphics, left + x * tile + tile / 2, top + y * tile + tile / 2, tile);
+    }
+
+    private static void DrawOrb(Graphics g, int x, int y, int tile)
+    {
+        using var glow = new SolidBrush(Color.FromArgb(55, 45, 213, 239));
+        using var core = new SolidBrush(Cyan);
+        g.FillEllipse(glow, x - tile / 3, y - tile / 3, tile * 2 / 3, tile * 2 / 3);
+        g.FillEllipse(core, x - tile / 8, y - tile / 8, tile / 4, tile / 4);
+    }
+
+    private static void DrawCadet(Graphics g, int x, int y, int tile)
+    {
+        using var suit = new SolidBrush(Color.FromArgb(220, 230, 240));
+        using var visor = new SolidBrush(Cyan);
+        g.FillRectangle(suit, x - tile / 5, y - tile / 10, tile * 2 / 5, tile / 2);
+        g.FillEllipse(suit, x - tile / 5, y - tile * 2 / 5, tile * 2 / 5, tile * 2 / 5);
+        g.FillEllipse(visor, x - tile / 7, y - tile / 3, tile * 2 / 7, tile / 6);
     }
 
     private void UpdateFooter()
