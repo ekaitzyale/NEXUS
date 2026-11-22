@@ -18,7 +18,7 @@ public sealed class IrisGameForm : Form
     private GameBoard? board;
     private int progress, room = 1, x = 1, y = 3, hp = 100, kits;
     private bool robotDefeated, circuitRestored;
-    private int remainingPa, robotHp, robotReservedPa, turnNumber;
+    private int remainingPa, robotHp, robotReservedPa, turnNumber, jarvisCharges = 6;
     private readonly List<string> actions = new();
     private readonly string[] rooms = { "MANTENIMIENTO", "ENTRENAMIENTO", "ACCESO PRINCIPAL" };
     private readonly Font bodyFont = new("Segoe UI", 12);
@@ -155,7 +155,7 @@ public sealed class IrisGameForm : Form
 
     private void Introduction()
     {
-        room = 1; x = 1; y = 3; hp = 100; kits = 0; robotDefeated = circuitRestored = false;
+        room = 1; x = 1; y = 3; hp = 100; kits = 0; robotDefeated = circuitRestored = false; jarvisCharges = 6;
         Page("FASE 0 · TUTORIAL", "INTRODUCCIÓN");
         var narrative = new Label { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter,
             Padding = new Padding(65), Font = new Font("Segoe UI", 17), ForeColor = Muted,
@@ -271,7 +271,7 @@ public sealed class IrisGameForm : Form
         var area = ButtonArea();
         var summary = new Label
         {
-            Text = $"PA DISPONIBLES: {remainingPa}     |     ATAQUES: {actions.Count(a => a == "ATACAR")}     DEFENSAS: {actions.Count(a => a == "DEFENDER")}     RESERVAS: {actions.Count(a => a == "RESERVAR")}",
+            Text = $"PA DISPONIBLES: {remainingPa}     |     ATAQUES: {actions.Count(a => a == "ATACAR")}     DEFENSAS: {actions.Count(a => a == "DEFENDER")}     RESERVAS: {actions.Count(a => a == "RESERVAR")}     KITS: {kits}",
             ForeColor = Cyan, Font = bodyFont, AutoSize = true, Margin = new Padding(12)
         };
         area.Controls.Add(summary);
@@ -284,6 +284,7 @@ public sealed class IrisGameForm : Form
         }
         if (remainingPa > 0)
         {
+            if (kits > 0 && hp < 100) area.Controls.Add(ActionButton("USAR KIT · 1 PA (+30 HP)", (_, _) => Choose("KIT")));
             area.Controls.Add(ActionButton("ATACAR · 1 PA", (_, _) => Choose("ATACAR")));
             area.Controls.Add(ActionButton("DEFENDER · 1 PA", (_, _) => Choose("DEFENDER")));
             area.Controls.Add(ActionButton("RESERVAR · 1 PA", (_, _) => Choose("RESERVAR")));
@@ -304,6 +305,10 @@ public sealed class IrisGameForm : Form
         int playerAttacks = actions.Count(a => a == "ATACAR");
         int playerDefenses = actions.Count(a => a == "DEFENDER");
         int playerReserved = actions.Count(a => a == "RESERVAR");
+        int usedKits = actions.Count(a => a == "KIT");
+        int healing = Math.Min(100 - hp, usedKits * 30);
+        hp += healing;
+        kits -= usedKits;
         int robotPa = 3 + robotReservedPa;
         robotReservedPa = 0;
         var enemyActions = new List<string>();
@@ -336,10 +341,10 @@ public sealed class IrisGameForm : Form
         int nextRobotPa = 3 + robotReservedPa;
         string report =
             $"TURNO {turnNumber} · RESULTADOS\n\n" +
-            $"CADETE: ATACAR ×{playerAttacks} · DEFENDER ×{playerDefenses} · RESERVAR ×{playerReserved}\n" +
+            $"CADETE: ATACAR ×{playerAttacks} · DEFENDER ×{playerDefenses} · RESERVAR ×{playerReserved} · KIT ×{usedKits}\n" +
             $"ROBOT: ATACAR ×{robotAttacks} · DEFENDER ×{robotDefenses} · RESERVAR ×{robotReservedPa}\n\n" +
             $"Ataques bloqueados: Cadete {Math.Min(robotAttacks, playerDefenses)} · Robot {Math.Min(playerAttacks, robotDefenses)}\n" +
-            $"Daño causado: {dealt} · Daño recibido: {received}\n" +
+            $"Daño causado: {dealt} · Daño recibido: {received} · Curación: +{healing}\n" +
             $"Vida Cadete: {hp}/100 · Vida Robot: {robotHp}/40\n" +
             $"PA siguiente turno: Cadete {nextPa} · Robot {nextRobotPa}";
         Page("RESULTADO DEL TURNO", "RESOLUCIÓN TÁCTICA");
@@ -372,12 +377,12 @@ public sealed class IrisGameForm : Form
 
     private void Circuit()
     {
-        // Primera interacción funcional. El rompecabezas giratorio definitivo sigue pendiente.
-        if (MessageBox.Show("Panel de energía: conecta el circuito de acceso.\n¿Activar conexión provisional?",
-            "CIRCUITO", MessageBoxButtons.YesNo) == DialogResult.Yes)
+        using var puzzle = new CircuitPuzzle();
+        if (puzzle.ShowDialog(this) == DialogResult.OK && puzzle.Solved)
         {
             circuitRestored = true;
-            Notice("Circuito restablecido. Puerta desbloqueada.");
+            UpdateFooter();
+            board?.Invalidate();
         }
     }
 
