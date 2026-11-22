@@ -18,7 +18,7 @@ public sealed class IrisGameForm : Form
     private GameBoard? board;
     private int progress, room = 1, x = 1, y = 3, hp = 100, kits;
     private bool robotDefeated, circuitRestored;
-    private int remainingPa, robotHp;
+    private int remainingPa, robotHp, robotReservedPa, turnNumber;
     private readonly List<string> actions = new();
     private readonly string[] rooms = { "MANTENIMIENTO", "ENTRENAMIENTO", "ACCESO PRINCIPAL" };
     private readonly Font bodyFont = new("Segoe UI", 12);
@@ -259,50 +259,115 @@ public sealed class IrisGameForm : Form
         if (MessageBox.Show("Amenaza detectada. ¿ENFRENTAR?", "NEXUS", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
         robotHp = 40;
         remainingPa = 3;
+        robotReservedPa = 0;
+        turnNumber = 1;
         actions.Clear();
         Combat();
     }
 
     private void Combat()
     {
-        Page("ENCUENTRO · ROBOT DE SEGURIDAD", $"CADETE {hp}/100 HP   ·   ROBOT {robotHp}/40 HP");
+        Page("ENCUENTRO · ROBOT DE SEGURIDAD", $"TURNO {turnNumber}   ·   CADETE {hp}/100 HP (DAÑO 20)   ·   ROBOT {robotHp}/40 HP (DAÑO 10)");
         var area = ButtonArea();
-        area.Controls.Add(new Label { Text = $"PA DISPONIBLES: {remainingPa}   |   ACCIONES: {string.Join(", ", actions)}",
-            ForeColor = Cyan, Font = bodyFont, AutoSize = true, Margin = new Padding(12) });
+        var summary = new Label
+        {
+            Text = $"PA DISPONIBLES: {remainingPa}     |     ATAQUES: {actions.Count(a => a == "ATACAR")}     DEFENSAS: {actions.Count(a => a == "DEFENDER")}     RESERVAS: {actions.Count(a => a == "RESERVAR")}",
+            ForeColor = Cyan, Font = bodyFont, AutoSize = true, Margin = new Padding(12)
+        };
+        area.Controls.Add(summary);
         void Choose(string action)
         {
-            if (remainingPa == 0) return;
+            if (remainingPa <= 0) return;
             actions.Add(action);
             remainingPa--;
             Combat();
         }
-        area.Controls.Add(ActionButton("ATACAR · 1 PA", (_, _) => Choose("ATACAR")));
-        area.Controls.Add(ActionButton("DEFENDER · 1 PA", (_, _) => Choose("DEFENDER")));
-        area.Controls.Add(ActionButton("RESERVAR · 1 PA", (_, _) => Choose("RESERVAR")));
-        if (remainingPa == 0) area.Controls.Add(ActionButton("RESOLVER TURNO", (_, _) => ResolveCombat()));
+        if (remainingPa > 0)
+        {
+            area.Controls.Add(ActionButton("ATACAR · 1 PA", (_, _) => Choose("ATACAR")));
+            area.Controls.Add(ActionButton("DEFENDER · 1 PA", (_, _) => Choose("DEFENDER")));
+            area.Controls.Add(ActionButton("RESERVAR · 1 PA", (_, _) => Choose("RESERVAR")));
+        }
+        if (actions.Count > 0)
+            area.Controls.Add(ActionButton("DESHACER ÚLTIMA ACCIÓN", (_, _) =>
+            {
+                actions.RemoveAt(actions.Count - 1);
+                remainingPa++;
+                Combat();
+            }));
+        if (remainingPa == 0)
+            area.Controls.Add(ActionButton("CONFIRMAR TURNO", (_, _) => ResolveCombat()));
     }
 
     private void ResolveCombat()
     {
-        int attacks = actions.Count(a => a == "ATACAR");
-        int defenses = actions.Count(a => a == "DEFENDER");
-        robotHp = Math.Max(0, robotHp - attacks * 20);
-        int damage = robotHp > 0 && defenses == 0 ? 10 : 0;
-        hp = Math.Max(0, hp - damage);
-        if (hp == 0) { Notice("MISIÓN FALLIDA"); Introduction(); return; }
-        if (robotHp == 0)
+        int playerAttacks = actions.Count(a => a == "ATACAR");
+        int playerDefenses = actions.Count(a => a == "DEFENDER");
+        int playerReserved = actions.Count(a => a == "RESERVAR");
+        int robotPa = 3 + robotReservedPa;
+        robotReservedPa = 0;
+        var enemyActions = new List<string>();
+        // The robot evaluates its own survival and the player's visible defenses.
+        // Its choices are not fixed; each action consumes one PA.
+        for (int i = 0; i < robotPa; i++)
         {
-            robotDefeated = true;
-            Notice("AMENAZA NEUTRALIZADA. El camino está despejado.");
-            Explore();
-            return;
+            int roll = Random.Shared.Next(100);
+            if (robotHp <= 20 && playerAttacks > 0 && roll < 65)
+                enemyActions.Add("DEFENDER");
+            else if (playerDefenses >= 2 && roll < 45)
+                enemyActions.Add("RESERVAR");
+            else if (roll < 62)
+                enemyActions.Add("ATACAR");
+            else if (roll < 82)
+                enemyActions.Add("DEFENDER");
+            else
+                enemyActions.Add("RESERVAR");
         }
-        int reserved = actions.Count(a => a == "RESERVAR");
-        Notice($"Resultado: {attacks} ataque(s), {defenses} defensa(s), {reserved} reserva(s). " +
-               $"Daño recibido: {damage}. El robot conserva {robotHp} HP.");
-        remainingPa = 3 + reserved;
-        actions.Clear();
-        Combat();
+        int robotAttacks = enemyActions.Count(a => a == "ATACAR");
+        int robotDefenses = enemyActions.Count(a => a == "DEFENDER");
+        robotReservedPa = enemyActions.Count(a => a == "RESERVAR");
+        int effectiveAttacks = Math.Max(0, playerAttacks - robotDefenses);
+        int effectiveRobotAttacks = Math.Max(0, robotAttacks - playerDefenses);
+        int dealt = Math.Min(robotHp, effectiveAttacks * 20);
+        int received = Math.Min(hp, effectiveRobotAttacks * 10);
+        robotHp -= dealt;
+        hp -= received;
+        int nextPa = 3 + playerReserved;
+        int nextRobotPa = 3 + robotReservedPa;
+        string report =
+            $"TURNO {turnNumber} · RESULTADOS\n\n" +
+            $"CADETE: ATACAR ×{playerAttacks} · DEFENDER ×{playerDefenses} · RESERVAR ×{playerReserved}\n" +
+            $"ROBOT: ATACAR ×{robotAttacks} · DEFENDER ×{robotDefenses} · RESERVAR ×{robotReservedPa}\n\n" +
+            $"Ataques bloqueados: Cadete {Math.Min(robotAttacks, playerDefenses)} · Robot {Math.Min(playerAttacks, robotDefenses)}\n" +
+            $"Daño causado: {dealt} · Daño recibido: {received}\n" +
+            $"Vida Cadete: {hp}/100 · Vida Robot: {robotHp}/40\n" +
+            $"PA siguiente turno: Cadete {nextPa} · Robot {nextRobotPa}";
+        Page("RESULTADO DEL TURNO", "RESOLUCIÓN TÁCTICA");
+        var content = new Label { Text = report, Dock = DockStyle.Fill, Font = new Font("Segoe UI", 14),
+            ForeColor = Muted, Padding = new Padding(50, 20, 50, 20), TextAlign = ContentAlignment.TopCenter };
+        root.Controls.Add(content);
+        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 85 };
+        var next = ActionButton("CONTINUAR", (_, _) =>
+        {
+            if (hp <= 0) { Failure(); return; }
+            if (robotHp <= 0) { robotDefeated = true; Explore(); return; }
+            remainingPa = nextPa;
+            turnNumber++;
+            actions.Clear();
+            Combat();
+        });
+        next.Location = new Point(30, 14);
+        bottom.Controls.Add(next);
+        root.Controls.Add(bottom);
+        bottom.BringToFront();
+    }
+
+    private void Failure()
+    {
+        Page("MISIÓN FALLIDA", "EL CADETE HA SIDO ELIMINADO");
+        var area = ButtonArea();
+        area.Controls.Add(ActionButton("REINTENTAR FASE", (_, _) => Introduction()));
+        area.Controls.Add(ActionButton("SALIR AL MENÚ", (_, _) => Menu()));
     }
 
     private void Circuit()
