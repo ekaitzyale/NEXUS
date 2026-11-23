@@ -64,3 +64,11 @@ dotnet run --project tests/Phase0/Nexus.Phase0.Checks.csproj
 ```
 
 La ejecución básica verifica las reglas de combate, los recursos narrativos y la solvencia de circuitos generados. Con `NEXUS_TEST_SQL_CONNECTION` configurada para una base de pruebas inicializada con el mismo esquema, el ejecutor verifica el repositorio SQL y recorre las salas 01–18 mediante los controles WinForms. Crea y elimina únicamente sus propias partidas de prueba. Configura `NEXUS_TEST_CAPTURES` con una carpeta de salida si quieres guardar capturas del recorrido.
+
+## Organización y material académico
+
+- [Índice de documentación](docs/README.md)
+- [Arquitectura y estructura del repositorio](docs/ARQUITECTURA.md)
+- [Guía de estudio para el examen de Programación](docs/examen/GUIA_ESTUDIO.md)
+
+La rama `desenvolvimento-v2` conserva el proyecto original de consola y el juego Windows Forms en una misma solución. Las rutas de código, JSON, SQL y pruebas se mantienen sin cambios para preservar sus dependencias.
