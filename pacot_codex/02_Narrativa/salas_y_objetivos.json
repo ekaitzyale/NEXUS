@@ -1,0 +1,110 @@
+[
+  {
+    "fase": 0,
+    "sala": 1,
+    "nombre": "Mantenimiento",
+    "objetivo": "Recuperar el kit inicial y reconocer los controles."
+  },
+  {
+    "fase": 0,
+    "sala": 2,
+    "nombre": "Entrenamiento",
+    "objetivo": "Superar el primer encuentro y aprender el uso de JARVIS."
+  },
+  {
+    "fase": 0,
+    "sala": 3,
+    "nombre": "Acceso Principal",
+    "objetivo": "Restablecer la conexión del circuito de acceso."
+  },
+  {
+    "fase": 1,
+    "sala": 4,
+    "nombre": "Corredor Central",
+    "objetivo": "Examinar el primer sector sin comunicación."
+  },
+  {
+    "fase": 1,
+    "sala": 5,
+    "nombre": "Enfermería",
+    "objetivo": "Recuperar un kit y consultar los registros médicos."
+  },
+  {
+    "fase": 1,
+    "sala": 6,
+    "nombre": "Sala Eléctrica",
+    "objetivo": "Restablecer la ruta energética mediante el circuito."
+  },
+  {
+    "fase": 1,
+    "sala": 7,
+    "nombre": "Comunicaciones",
+    "objetivo": "Recuperar el chip de información que permite avanzar."
+  },
+  {
+    "fase": 2,
+    "sala": 8,
+    "nombre": "Seguridad",
+    "objetivo": "Acceder con el chip y superar dos robots de vigilancia."
+  },
+  {
+    "fase": 2,
+    "sala": 9,
+    "nombre": "Depósito",
+    "objetivo": "Recuperar suministros y consultar el inventario de emergencia."
+  },
+  {
+    "fase": 2,
+    "sala": 10,
+    "nombre": "Laboratorio A",
+    "objetivo": "Resolver el circuito de acceso al laboratorio."
+  },
+  {
+    "fase": 2,
+    "sala": 11,
+    "nombre": "Laboratorio B",
+    "objetivo": "Superar tres robots y examinar los experimentos."
+  },
+  {
+    "fase": 2,
+    "sala": 12,
+    "nombre": "Archivo Científico",
+    "objetivo": "Recuperar un kit y leer los registros de investigación."
+  },
+  {
+    "fase": 2,
+    "sala": 13,
+    "nombre": "Investigación del NÚCLEO ZERO",
+    "objetivo": "Descubrir el vínculo entre la señal y el protocolo."
+  },
+  {
+    "fase": 3,
+    "sala": 14,
+    "nombre": "Centro de Control",
+    "objetivo": "Resolver el circuito que habilita la secuencia final."
+  },
+  {
+    "fase": 3,
+    "sala": 15,
+    "nombre": "Generador A",
+    "objetivo": "Desactivar el primer generador."
+  },
+  {
+    "fase": 3,
+    "sala": 16,
+    "nombre": "Generador B",
+    "objetivo": "Desactivar el segundo generador."
+  },
+  {
+    "fase": 3,
+    "sala": 17,
+    "nombre": "Cámara del GUARDIÁN-01",
+    "objetivo": "Derrotar al guardián."
+  },
+  {
+    "fase": 3,
+    "sala": 18,
+    "nombre": "Núcleo Central",
+    "objetivo": "Completar la misión y conocer la última transmisión."
+  }
+]

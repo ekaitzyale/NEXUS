@@ -1,0 +1,200 @@
+[
+  {
+    "id": "DOC_001",
+    "sala": 1,
+    "fase": 0,
+    "titulo": "ORDEN DE MANTENIMIENTO",
+    "fecha": "2187-06-04",
+    "origen": "Ingeniería",
+    "texto": "Se ha solicitado revisar las líneas auxiliares del sector de acceso. Las inspecciones deberán realizarse por personal autorizado. El suministro médico de emergencia se ha depositado en Mantenimiento.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_002",
+    "sala": 4,
+    "fase": 1,
+    "titulo": "REGISTRO DE TURNO 031",
+    "fecha": "2187-06-11",
+    "origen": "Operaciones",
+    "texto": "El último relevo terminó sin incidencias mecánicas graves. Sin embargo, la señal interna sufrió interrupciones breves durante el turno nocturno. Comunicaciones abrió una investigación.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_003",
+    "sala": 5,
+    "fase": 1,
+    "titulo": "INFORME MÉDICO 014",
+    "fecha": "2187-06-12",
+    "origen": "Enfermería",
+    "texto": "Varios miembros de la tripulación reportaron fatiga y episodios de desorientación después de trabajar cerca del sector experimental. No existe una causa clínica confirmada. Se recomendó limitar la exposición.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_004",
+    "sala": 5,
+    "fase": 1,
+    "titulo": "NOTA DE SUMINISTROS",
+    "fecha": "2187-06-13",
+    "origen": "Enfermería",
+    "texto": "Los botiquines restantes se redistribuyeron entre Enfermería y los depósitos de emergencia. Se prohíbe retirarlos sin registrar su destino.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_005",
+    "sala": 6,
+    "fase": 1,
+    "titulo": "AVISO DE RED ELÉCTRICA",
+    "fecha": "2187-06-14",
+    "origen": "Ingeniería",
+    "texto": "Se detectaron derivaciones de energía no autorizadas hacia los laboratorios. El aislamiento automático de líneas ha dejado circuitos en estado manual. La prioridad es recuperar una ruta estable.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_006",
+    "sala": 7,
+    "fase": 1,
+    "titulo": "ÚLTIMA COMUNICACIÓN PARCIAL",
+    "fecha": "2187-06-15",
+    "origen": "Comunicaciones",
+    "texto": "Mensaje incompleto: «IRIS, solicitamos confirmación de recepción…» La respuesta quedó interrumpida antes de identificar al emisor. Se preservó un chip de autorización para los sectores restringidos.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_007",
+    "sala": 8,
+    "fase": 2,
+    "titulo": "ORDEN DE SEGURIDAD 044",
+    "fecha": "2187-06-16",
+    "origen": "Seguridad",
+    "texto": "El acceso a los laboratorios queda limitado al personal acreditado. Los robots de vigilancia deben impedir el tránsito sin autorización. La orden permanece activa hasta nuevo aviso.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_008",
+    "sala": 9,
+    "fase": 2,
+    "titulo": "INVENTARIO DE CONTINGENCIA",
+    "fecha": "2187-06-16",
+    "origen": "Logística",
+    "texto": "Se han distribuido equipos de emergencia por sectores. El Depósito conserva suministros médicos de reserva. La ruta hacia los laboratorios permanece bajo control de Seguridad.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_009",
+    "sala": 10,
+    "fase": 2,
+    "titulo": "BITÁCORA DE LABORATORIO A",
+    "fecha": "2187-06-17",
+    "origen": "Investigación",
+    "texto": "Las lecturas del sistema experimental muestran fluctuaciones que no corresponden al consumo previsto. Se solicitó una auditoría del origen energético y de los sensores de campo.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_010",
+    "sala": 11,
+    "fase": 2,
+    "titulo": "REPORTE DE INCIDENTE 019",
+    "fecha": "2187-06-18",
+    "origen": "Investigación",
+    "texto": "La actividad del experimento aumentó durante la última prueba. El equipo solicitó detener nuevas sesiones. Seguridad cerró los accesos mientras se revisaban los datos.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_011",
+    "sala": 12,
+    "fase": 2,
+    "titulo": "ACTA CIENTÍFICA RESERVADA",
+    "fecha": "2187-06-19",
+    "origen": "Archivo Científico",
+    "texto": "El proyecto denominado NÚCLEO ZERO analiza una señal cuyo origen no ha podido establecerse. Los resultados no permiten afirmar que sea una transmisión convencional. Se ordena restringir su difusión.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_012",
+    "sala": 12,
+    "fase": 2,
+    "titulo": "CORRESPONDENCIA INTERNA",
+    "fecha": "2187-06-20",
+    "origen": "Archivo Científico",
+    "texto": "Investigación solicita que no se eliminen los registros originales. Cualquier decisión sobre el experimento debe basarse en la secuencia completa de eventos y no en lecturas aisladas.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_013",
+    "sala": 13,
+    "fase": 2,
+    "titulo": "PROTOCOLO IRIS — CONTENCIÓN",
+    "fecha": "2187-06-21",
+    "origen": "Dirección de Sistemas",
+    "texto": "La inteligencia central activó el Protocolo IRIS para aislar el NÚCLEO ZERO tras detectar una anomalía persistente. El cierre de sectores y las unidades de seguridad forman parte de la contención. La inteligencia no fue declarada hostil.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_014",
+    "sala": 14,
+    "fase": 3,
+    "titulo": "ORDEN DE CONTROL CENTRAL",
+    "fecha": "2187-06-22",
+    "origen": "Centro de Control",
+    "texto": "El acceso al núcleo requiere restablecer la ruta eléctrica y desactivar por separado los generadores A y B. La cámara del GUARDIÁN-01 continuará bloqueada hasta completar la secuencia.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_015",
+    "sala": 15,
+    "fase": 3,
+    "titulo": "REGISTRO GENERADOR A",
+    "fecha": "2187-06-22",
+    "origen": "Ingeniería",
+    "texto": "La primera línea de suministro continúa alimentando el cierre de contención. Su desactivación debe verificarse antes de intervenir el segundo generador.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_016",
+    "sala": 16,
+    "fase": 3,
+    "titulo": "REGISTRO GENERADOR B",
+    "fecha": "2187-06-22",
+    "origen": "Ingeniería",
+    "texto": "El segundo generador mantiene la barrera de la cámara central. La desconexión de ambas líneas permitirá abrir el corredor final, sujeto a autorización de seguridad.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_017",
+    "sala": 17,
+    "fase": 3,
+    "titulo": "DIRECTIVA GUARDIÁN-01",
+    "fecha": "2187-06-22",
+    "origen": "Seguridad",
+    "texto": "GUARDIÁN-01 protegerá el último acceso hasta que se confirme la neutralización de los sistemas de contención. No se autoriza el paso mientras permanezca activo.",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  },
+  {
+    "id": "DOC_018",
+    "sala": 18,
+    "fase": 3,
+    "titulo": "TRANSMISIÓN FINAL — IRIS",
+    "fecha": "2187-06-22",
+    "origen": "Registro Central",
+    "texto": "Se ha preservado una señal que no corresponde a ninguna fuente identificada por los sistemas de la nave. La última conclusión del equipo permanece registrada: «No estamos solos. Y nunca lo estuvimos».",
+    "lectura": "Solo en terminal de la sala; sin voz ni archivo de relectura",
+    "obligatorio": false
+  }
+]

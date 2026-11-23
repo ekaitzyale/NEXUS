@@ -1,0 +1,9 @@
+NEXUS — PROTOCOLO IRIS | PACOTE PARA CODEX
+
+1. Extraia o ZIP para uma pasta à parte, NÃO por cima do repositório.
+2. Abra o Codex no repositório local GitHub\NEXUS, branch desenvolvimento-v2.
+3. Forneça ao Codex o arquivo 05_Integracao/PROMPT_MESTRE_CODEX.md e indique o caminho da pasta extraída para ler os outros arquivos.
+4. Peça primeiro inspeção do código existente e plano curto, depois implementação incremental.
+5. Não enviar o pacote como se ele já contivesse código novo compilado. O código atual continua no GitHub.
+6. Áudio real e polimento ficam para etapa posterior; textos e progressão já estão neste pacote.
+7. Imagens são referências visuais; Codex deve implementar controles dinâmicos, não usar a prancha como atlas.

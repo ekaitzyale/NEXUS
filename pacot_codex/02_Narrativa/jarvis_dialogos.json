@@ -1,0 +1,317 @@
+[
+  {
+    "id": "JARVIS_APP_001",
+    "fase": -1,
+    "sala": 0,
+    "disparador": "primer_inicio_tras_carga_100",
+    "texto": "Conexión establecida.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_F0_INICIO",
+    "fase": 0,
+    "sala": 1,
+    "disparador": "entrada_fase_0",
+    "texto": "Cadete, bienvenido a la IRIS. Hace treinta días perdimos toda comunicación con esta nave. Mi función es ayudarte a recuperar el control y descubrir qué ocurrió. Comenzaremos por el sector de mantenimiento.",
+    "bloqueante": true,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_F1_INICIO",
+    "fase": 1,
+    "sala": 4,
+    "disparador": "entrada_fase_1",
+    "texto": "Cadete, hemos recuperado el acceso principal, pero la señal de la IRIS sigue interrumpida. Investiga el corredor central y busca el origen de la última comunicación.",
+    "bloqueante": true,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_F2_INICIO",
+    "fase": 2,
+    "sala": 8,
+    "disparador": "entrada_fase_2",
+    "texto": "Los registros recuperados indican que el Protocolo IRIS restringió sectores de investigación. El chip permite entrar en Seguridad. Debemos descubrir qué sucedió sin comprometer los sistemas de la nave.",
+    "bloqueante": true,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_F3_INICIO",
+    "fase": 3,
+    "sala": 14,
+    "disparador": "entrada_fase_3",
+    "texto": "Los sistemas de control confirman que el NÚCLEO ZERO sigue activo. Para llegar hasta él debemos recuperar el Centro de Control, desactivar ambos generadores y atravesar la cámara de seguridad. Mantente alerta.",
+    "bloqueante": true,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S01_KIT",
+    "fase": 0,
+    "sala": 1,
+    "disparador": "evento_kit",
+    "texto": "He detectado un botiquín. Recógelo; podría ser necesario más adelante.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S01_SALIDA",
+    "fase": 0,
+    "sala": 1,
+    "disparador": "evento_salida",
+    "texto": "El sector está asegurado. Dirígete al área de entrenamiento.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S02_ENEMIGO",
+    "fase": 0,
+    "sala": 2,
+    "disparador": "evento_enemigo",
+    "texto": "Un robot de seguridad bloquea el paso. Acércate y selecciona ENFRENTAR cuando estés listo.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S02_PA",
+    "fase": 0,
+    "sala": 2,
+    "disparador": "evento_pa",
+    "texto": "Dispones de tres puntos de acción por turno. Atacar, defender y reservar consumen uno.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S02_CARGA",
+    "fase": 0,
+    "sala": 2,
+    "disparador": "evento_carga",
+    "texto": "Puedes asignar una carga de JARVIS para obtener un punto de acción adicional. Confirma cuántas deseas utilizar.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S02_VICTORIA",
+    "fase": 0,
+    "sala": 2,
+    "disparador": "evento_victoria",
+    "texto": "Amenaza neutralizada. Tus recursos se conservarán para los siguientes encuentros.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S03_CIRCUITO",
+    "fase": 0,
+    "sala": 3,
+    "disparador": "evento_circuito",
+    "texto": "El acceso está desconectado. Gira los segmentos hasta conectar la entrada verde con la salida naranja.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S03_FIN",
+    "fase": 0,
+    "sala": 3,
+    "disparador": "evento_fin",
+    "texto": "Acceso principal restablecido. La exploración de la IRIS puede comenzar.",
+    "bloqueante": true,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S04_ENTRADA",
+    "fase": 1,
+    "sala": 4,
+    "disparador": "evento_entrada",
+    "texto": "El corredor está desierto. No tenemos una respuesta de la tripulación.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S04_REGISTRO",
+    "fase": 1,
+    "sala": 4,
+    "disparador": "evento_registro",
+    "texto": "Hay un terminal activo. Puedes consultar sus registros directamente.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S05_ENTRADA",
+    "fase": 1,
+    "sala": 5,
+    "disparador": "evento_entrada",
+    "texto": "La enfermería conserva energía auxiliar. Busca suministros y registros de atención.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S06_CIRCUITO",
+    "fase": 1,
+    "sala": 6,
+    "disparador": "evento_circuito",
+    "texto": "La distribución eléctrica está fragmentada. Reconecta el circuito para continuar.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S07_CHIP",
+    "fase": 1,
+    "sala": 7,
+    "disparador": "evento_chip",
+    "texto": "He localizado un chip de autorización. Será necesario para acceder al sector de Seguridad.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S07_FIN",
+    "fase": 1,
+    "sala": 7,
+    "disparador": "evento_fin",
+    "texto": "El chip es compatible. Ya podemos investigar el Protocolo IRIS.",
+    "bloqueante": true,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S08_ACCESO",
+    "fase": 2,
+    "sala": 8,
+    "disparador": "evento_acceso",
+    "texto": "Autorización aceptada. Detecto dos unidades de seguridad en esta sala.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S09_SUMINISTROS",
+    "fase": 2,
+    "sala": 9,
+    "disparador": "evento_suministros",
+    "texto": "Los suministros del depósito siguen disponibles. Revisa el área antes de avanzar.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S10_CIRCUITO",
+    "fase": 2,
+    "sala": 10,
+    "disparador": "evento_circuito",
+    "texto": "El laboratorio requiere una conexión manual. Mantén la ruta entre los puntos de entrada y salida.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S11_ALERTA",
+    "fase": 2,
+    "sala": 11,
+    "disparador": "evento_alerta",
+    "texto": "Tres unidades hostiles protegen el laboratorio. Planifica el uso de tus puntos de acción.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S12_ARCHIVOS",
+    "fase": 2,
+    "sala": 12,
+    "disparador": "evento_archivos",
+    "texto": "Este archivo contiene registros científicos. Léelos para comprender la investigación.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S13_REVELACION",
+    "fase": 2,
+    "sala": 13,
+    "disparador": "evento_revelacion",
+    "texto": "Los registros señalan al NÚCLEO ZERO como origen de la anomalía. La inteligencia de la nave activó medidas de contención para impedir su propagación.",
+    "bloqueante": true,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S13_FIN",
+    "fase": 2,
+    "sala": 13,
+    "disparador": "evento_fin",
+    "texto": "Tenemos una ruta al Centro de Control. La transmisión final podría seguir almacenada allí.",
+    "bloqueante": true,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S14_CIRCUITO",
+    "fase": 3,
+    "sala": 14,
+    "disparador": "evento_circuito",
+    "texto": "Primero debemos restablecer el circuito del Centro de Control. Después podremos intervenir los generadores.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S15_GENERADOR",
+    "fase": 3,
+    "sala": 15,
+    "disparador": "evento_generador",
+    "texto": "Generador A localizado. Desactívalo antes de avanzar.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S15_OK",
+    "fase": 3,
+    "sala": 15,
+    "disparador": "evento_ok",
+    "texto": "Generador A desactivado. Continúa al Generador B.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S16_GENERADOR",
+    "fase": 3,
+    "sala": 16,
+    "disparador": "evento_generador",
+    "texto": "El segundo generador mantiene el bloqueo del núcleo. Debemos desactivarlo.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S16_OK",
+    "fase": 3,
+    "sala": 16,
+    "disparador": "evento_ok",
+    "texto": "Generador B desactivado. La cámara del guardián ya es accesible.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S17_JEFE",
+    "fase": 3,
+    "sala": 17,
+    "disparador": "evento_jefe",
+    "texto": "GUARDIÁN-01 confirmado. Esta unidad protege el último acceso. No podremos llegar al núcleo sin neutralizarla.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S17_OK",
+    "fase": 3,
+    "sala": 17,
+    "disparador": "evento_ok",
+    "texto": "GUARDIÁN-01 neutralizado. El acceso al núcleo está libre.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S18_NUCLEO",
+    "fase": 3,
+    "sala": 18,
+    "disparador": "evento_nucleo",
+    "texto": "El NÚCLEO ZERO conserva la última transmisión. Estoy recuperando el registro final.",
+    "bloqueante": false,
+    "voz_pendiente": true
+  },
+  {
+    "id": "JARVIS_S18_FINAL",
+    "fase": 3,
+    "sala": 18,
+    "disparador": "evento_final",
+    "texto": "No estamos solos. Y nunca lo estuvimos.",
+    "bloqueante": true,
+    "voz_pendiente": true
+  }
+]

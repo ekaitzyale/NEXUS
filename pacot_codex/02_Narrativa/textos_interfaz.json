@@ -1,0 +1,98 @@
+{
+  "MENU_PRINCIPAL": [
+    "NUEVA PARTIDA",
+    "CONTINUAR",
+    "CONFIGURACIÓN",
+    "SALIR"
+  ],
+  "NOMBRE": [
+    "IDENTIFICACIÓN DEL CADETE",
+    "INTRODUCE TU NOMBRE",
+    "CONFIRMAR",
+    "VOLVER"
+  ],
+  "FASES": [
+    "SELECCIÓN DE FASE",
+    "FASE BLOQUEADA",
+    "INICIAR",
+    "VOLVER"
+  ],
+  "CARGA": [
+    "CARGAR PARTIDA",
+    "CARGAR",
+    "ELIMINAR",
+    "VOLVER",
+    "NO HAY PARTIDAS GUARDADAS"
+  ],
+  "PAUSA": [
+    "PAUSA",
+    "REANUDAR",
+    "CONFIGURACIÓN",
+    "GUARDAR PARTIDA",
+    "SALIR AL MENÚ"
+  ],
+  "CONFIG": [
+    "CONFIGURACIÓN",
+    "MÚSICA",
+    "EFECTOS",
+    "VOZ DE JARVIS",
+    "APLICAR",
+    "VOLVER"
+  ],
+  "EXPLORACION": [
+    "OBJETIVO",
+    "SALUD",
+    "DAÑO",
+    "BOTIQUINES",
+    "[E] INTERACTUAR",
+    "[E] LEER DOCUMENTO",
+    "ENFRENTAR",
+    "PAUSA"
+  ],
+  "COMBATE": [
+    "ATACAR",
+    "DEFENDER",
+    "RESERVAR",
+    "USAR KIT",
+    "HABILIDAD JARVIS",
+    "CONFIRMAR",
+    "CANCELAR",
+    "FINALIZAR TURNO",
+    "PA"
+  ],
+  "RESULTADO": [
+    "RESULTADO DEL TURNO",
+    "DAÑO INFLIGIDO",
+    "DAÑO RECIBIDO",
+    "SALUD ACTUAL",
+    "CONTINUAR"
+  ],
+  "PUZZLE": [
+    "RESTABLECER CIRCUITO",
+    "ENTRADA",
+    "SALIDA",
+    "GIRAR",
+    "CERRAR",
+    "CIRCUITO RESTABLECIDO"
+  ],
+  "FINAL_FASE": [
+    "FASE COMPLETADA",
+    "CONTINUAR",
+    "GUARDAR Y SALIR"
+  ],
+  "GAME_OVER": [
+    "MISIÓN FALLIDA",
+    "REINTENTAR",
+    "SALIR AL MENÚ"
+  ],
+  "FINAL_JUEGO": [
+    "MISIÓN COMPLETADA",
+    "No estamos solos. Y nunca lo estuvimos.",
+    "VOLVER AL MENÚ"
+  ],
+  "CONFIRMAR_SALIDA": [
+    "¿QUIERES SALIR?",
+    "CANCELAR",
+    "SALIR"
+  ]
+}

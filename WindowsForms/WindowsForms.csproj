@@ -5,7 +5,14 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.8" />
+    <EmbeddedResource Include="../pacot_codex/02_Narrativa/*.json" LogicalName="Narrativa.%(Filename)%(Extension)" />
+    <Compile Remove="obj/**/*.cs" />
+    <InternalsVisibleTo Include="Nexus.Phase0.Checks" />
+  </ItemGroup>
 
 </Project>

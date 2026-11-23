@@ -1,490 +1,479 @@
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Windows.Forms;
-
 namespace WindowsForms;
 
-// Prototipo técnico v2: interfaz adaptable, navegación y controles de exploración.
-public sealed class IrisGameForm : Form
+public sealed partial class IrisGameForm : Form
 {
-    private static readonly Color Background = Color.FromArgb(7, 15, 29);
-    private static readonly Color Surface = Color.FromArgb(15, 31, 51);
-    private static readonly Color Cyan = Color.FromArgb(83, 220, 246);
-    private static readonly Color Muted = Color.FromArgb(169, 191, 210);
-    private readonly System.Windows.Forms.Timer startup = new() { Interval = 40 };
-    private readonly System.Windows.Forms.Timer voiceHint = new() { Interval = 1300 };
+    private static readonly Color Background = Color.FromArgb(6, 15, 28);
+    private static readonly Color Surface = Color.FromArgb(13, 34, 51);
+    private static readonly Color Cyan = Color.FromArgb(88, 224, 249);
+    private static readonly Color Muted = Color.FromArgb(175, 200, 217);
+    private static readonly Color Red = Color.FromArgb(255, 112, 121);
+    private readonly NarrativeCatalog catalog = new();
+    private readonly AudioManager audio = new();
+    private readonly SaveRepository saves = new(Environment.GetEnvironmentVariable("NEXUS_SQL_CONNECTION")
+        ?? SaveRepository.LocalConnection);
+    private readonly Random combatRandom;
     private readonly Panel root = new() { Dock = DockStyle.Fill };
-    private readonly Label footer = new() { Dock = DockStyle.Bottom, Height = 38, ForeColor = Cyan, TextAlign = ContentAlignment.MiddleCenter };
-    private GameBoard? board;
-    private int progress, room = 1, x = 1, y = 3, hp = 100, kits;
-    private bool robotDefeated, circuitRestored, tutorialJarvisUsed;
-    private int remainingPa, robotHp, robotReservedPa, turnNumber, jarvisCharges = 6;
-    private readonly List<string> actions = new();
-    private readonly string[] rooms = { "MANTENIMIENTO", "ENTRENAMIENTO", "ACCESO PRINCIPAL" };
-    private readonly Font bodyFont = new("Segoe UI", 12);
+    private readonly System.Windows.Forms.Timer loading = new() { Interval = 25 };
+    private GameSession? session;
+    private CombatTurn? combat;
+    private RoomEnemy? combatEnemy;
+    private Panel? board;
+    private Button? faceEnemy;
+    private Label? interactHint;
+    private Action? refreshNarrative;
+    private bool busy;
+    private bool completionSaved;
+    private bool exiting;
+    private bool inventoryAvailable;
+    private GameSession Session => session ?? throw new InvalidOperationException();
+    private CombatTurn Encounter => combat ?? throw new InvalidOperationException();
+    private static readonly string[] PhaseNames = ["TUTORIAL", "SEÑAL PERDIDA", "PROTOCOLO IRIS", "ÚLTIMA TRANSMISIÓN"];
 
-    public IrisGameForm()
+    public IrisGameForm() : this(Random.Shared) { }
+
+    internal IrisGameForm(Random combatRandom)
     {
+        this.combatRandom = combatRandom;
         Text = "NEXUS — PROTOCOLO IRIS";
-        MinimumSize = new Size(900, 640);
+        MinimumSize = new Size(940, 660);
         ClientSize = new Size(1180, 760);
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Background;
         ForeColor = Color.White;
+        Font = new Font("Segoe UI", 11);
+        AutoScaleMode = AutoScaleMode.Dpi;
         KeyPreview = true;
         Controls.Add(root);
-        startup.Tick += (_, _) =>
+        FormClosing += (_, e) =>
         {
-            progress = Math.Min(100, progress + 2);
-            if (root.Controls.OfType<ProgressBar>().FirstOrDefault() is { } bar) bar.Value = progress;
-            if (progress == 100) { startup.Stop(); Menu(); }
+            if (exiting || e.CloseReason != CloseReason.UserClosing) return;
+            e.Cancel = busy || !AskToExit();
         };
-        Splash();
-    }
-
-    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
-    {
-        if (board is not null)
+        Loading("PROTOCOLO IRIS", "INICIALIZANDO SISTEMAS", () =>
         {
-            int dx = keyData is Keys.A or Keys.Left ? -1 : keyData is Keys.D or Keys.Right ? 1 : 0;
-            int dy = keyData is Keys.W or Keys.Up ? -1 : keyData is Keys.S or Keys.Down ? 1 : 0;
-            if (keyData == Keys.E) { Interact(); return true; }
-            if (dx != 0 || dy != 0)
-            {
-                int nx = Math.Clamp(x + dx, 0, 8), ny = Math.Clamp(y + dy, 0, 6);
-                if (!(room == 2 && !robotDefeated && nx == 5 && ny == 3))
-                { x = nx; y = ny; board.Invalidate(); UpdateFooter(); }
-                return true;
-            }
-        }
-        return base.ProcessCmdKey(ref msg, keyData);
+            audio.QueueVoice(catalog.Line(-1, 0, "primer_inicio_tras_carga_100").Id);
+            MainMenu();
+        });
     }
 
-    private void Page(string title, string subtitle)
+    protected override bool ProcessCmdKey(ref Message message, Keys key)
+    {
+        bool repeated = (message.LParam.ToInt64() & (1L << 30)) != 0;
+        if (!busy && inventoryAvailable && key == Keys.I)
+        {
+            if (!repeated) OpenInventory();
+            return true;
+        }
+        if (board is null || busy) return base.ProcessCmdKey(ref message, key);
+        if (key == Keys.E)
+        {
+            if (!repeated) Interact();
+            return true;
+        }
+
+        var movement = key switch
+        {
+            Keys.A or Keys.Left => new Point(-1, 0),
+            Keys.D or Keys.Right => new Point(1, 0),
+            Keys.W or Keys.Up => new Point(0, -1),
+            Keys.S or Keys.Down => new Point(0, 1),
+            _ => Point.Empty
+        };
+        if (movement.IsEmpty) return base.ProcessCmdKey(ref message, key);
+        if (repeated) return true;
+        Session.Move(movement.X, movement.Y);
+        ObserveRoom();
+        UpdateExploration();
+        return true;
+    }
+
+    private Panel Page(string title, string subtitle, Color? accent = null)
     {
         board = null;
+        inventoryAvailable = false;
+        refreshNarrative = null;
+        root.SuspendLayout();
+        var previous = root.Controls.Cast<Control>().ToArray();
         root.Controls.Clear();
-        var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = 155, ColumnCount = 1, RowCount = 2, BackColor = Background };
-        header.RowStyles.Add(new RowStyle(SizeType.Percent, 65));
-        header.RowStyles.Add(new RowStyle(SizeType.Percent, 35));
-        header.Controls.Add(new Label { Text = title, Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomCenter,
-            Font = new Font("Segoe UI", 32, FontStyle.Bold), ForeColor = Cyan }, 0, 0);
-        header.Controls.Add(new Label { Text = subtitle, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter,
-            Font = new Font("Segoe UI", 13), ForeColor = Muted }, 0, 1);
+        foreach (var control in previous) control.Dispose();
+        var header = new Panel { Dock = DockStyle.Top, Height = 103, BackColor = Background };
+        var label = Caption(title, 29, accent ?? Cyan);
+        label.Height = 62;
+        label.Dock = DockStyle.Top;
+        var detail = Caption(subtitle, 11, Muted);
+        detail.Dock = DockStyle.Fill;
+        header.Controls.Add(detail);
+        header.Controls.Add(label);
+        var body = new Panel { Dock = DockStyle.Fill, BackColor = Background, Padding = new Padding(22, 10, 22, 16) };
+        root.Controls.Add(body);
         root.Controls.Add(header);
+        root.ResumeLayout();
+        return body;
     }
 
-    private static Button ActionButton(string title, EventHandler onClick)
+    private static Label Caption(string text, int size = 12, Color? color = null) => new()
     {
-        var button = new Button { Text = title, Width = 300, Height = 50, Margin = new Padding(7),
-            FlatStyle = FlatStyle.Flat, BackColor = Surface, ForeColor = Color.White,
-            Font = new Font("Segoe UI", 11, FontStyle.Bold), Cursor = Cursors.Hand };
-        button.FlatAppearance.BorderColor = Cyan;
-        button.Click += onClick;
+        Text = text, ForeColor = color ?? Color.White, TextAlign = ContentAlignment.MiddleCenter,
+        Font = new Font("Segoe UI", size, size >= 17 ? FontStyle.Bold : FontStyle.Regular)
+    };
+
+    private static Button Button(string title, Action action, int width = 245, Color? accent = null)
+    {
+        var button = new Button
+        {
+            Text = title, Width = width, Height = 44, Margin = new Padding(5), FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 10, FontStyle.Bold), BackColor = Surface, ForeColor = Color.White,
+            Cursor = Cursors.Hand
+        };
+        button.FlatAppearance.BorderColor = accent ?? Cyan;
+        button.FlatAppearance.MouseOverBackColor = Color.FromArgb(19, 67, 87);
+        button.Click += (_, _) => action();
         return button;
     }
 
-    private FlowLayoutPanel ButtonArea()
+    private static FlowLayoutPanel Stack(Control parent)
     {
-        var area = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown,
-            WrapContents = false, AutoScroll = true, Padding = new Padding(12), BackColor = Background };
-        root.Controls.Add(area);
-        area.BringToFront();
-        return area;
+        var column = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
+            AutoScroll = true, Padding = new Padding(15)
+        };
+        parent.Controls.Add(column);
+        return column;
     }
 
-    private void Splash()
+    private static FlowLayoutPanel Bar(Control parent)
     {
-        Page("N E X U S", "PROTOCOLO IRIS · INICIALIZANDO SISTEMAS");
-        var bar = new ProgressBar { Dock = DockStyle.Bottom, Height = 20, Maximum = 100 };
-        root.Controls.Add(bar);
-        startup.Start();
+        var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 57, WrapContents = false, AutoScroll = true };
+        parent.Controls.Add(bar);
+        return bar;
     }
 
-    private void Menu()
+    private void Loading(string title, string subtitle, Action next)
     {
-        Page("N E X U S", "PROTOCOLO IRIS · AÑO 2187");
-        var center = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1 };
-        center.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        center.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 335));
-        center.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        root.Controls.Add(center);
-        center.BringToFront();
-        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown,
-            WrapContents = false, AutoScroll = true, Padding = new Padding(8, 25, 8, 8) };
-        center.Controls.Add(buttons, 1, 0);
-        buttons.Controls.Add(ActionButton("NUEVA PARTIDA", (_, _) => PhaseSelect()));
-        buttons.Controls.Add(ActionButton("CARGAR PARTIDA", (_, _) => Notice("El guardado en SQL Server aún no está implementado.")));
-        buttons.Controls.Add(ActionButton("CONFIGURACIÓN", (_, _) => Settings()));
-        buttons.Controls.Add(ActionButton("SALIR", (_, _) => Close()));
+        var page = Page(title, subtitle);
+        var progress = new ProgressBar { Dock = DockStyle.Bottom, Height = 22 };
+        var percent = Caption("0 %", 18, Cyan);
+        percent.Dock = DockStyle.Fill;
+        page.Controls.Add(percent);
+        page.Controls.Add(progress);
+        progress.SendToBack();
+        loading.Tick += Tick;
+        loading.Start();
+
+        void Tick(object? sender, EventArgs args)
+        {
+            if (progress.Value < 100)
+            {
+                progress.Value += 5;
+                percent.Text = $"{progress.Value} %";
+                return;
+            }
+            loading.Stop();
+            loading.Tick -= Tick;
+            next();
+        }
     }
 
-    private void Settings()
+    private void MainMenu()
     {
-        Page("CONFIGURACIÓN", "AUDIO · PANTALLA · CONTROLES");
-        var content = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, Padding = new Padding(90, 15, 90, 25) };
-        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
-        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
-        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));
-        content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
-        root.Controls.Add(content);
-        content.BringToFront();
-        content.Controls.Add(new Label { Text = "VOLUMEN GENERAL (CONTROL PROVISIONAL)", Dock = DockStyle.Fill,
-            Font = bodyFont, ForeColor = Muted, TextAlign = ContentAlignment.MiddleLeft }, 0, 0);
-        content.Controls.Add(new TrackBar { Dock = DockStyle.Fill, Minimum = 0, Maximum = 100, Value = 75, TickFrequency = 10 }, 0, 1);
-        content.Controls.Add(new Label { Text = "Mover: WASD / Flechas    ·    Interactuar: E    ·    Pausa: botón en pantalla",
-            Dock = DockStyle.Fill, Font = bodyFont, ForeColor = Muted, TextAlign = ContentAlignment.MiddleLeft }, 0, 2);
-        var back = ActionButton("VOLVER", (_, _) => Menu());
-        content.Controls.Add(back, 0, 4);
+        session = null;
+        combat = null;
+        combatEnemy = null;
+        var page = Page("N E X U S", "PROTOCOLO IRIS   /   2187");
+        var split = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2 };
+        split.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 320));
+        split.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        page.Controls.Add(split);
+        var rail = new Panel { Dock = DockStyle.Fill };
+        split.Controls.Add(rail, 0, 0);
+        var menu = Stack(rail);
+        var labels = catalog.Labels("MENU_PRINCIPAL");
+        menu.Controls.Add(Button(labels[0], Identify));
+        menu.Controls.Add(Button(labels[1], () => _ = LoadScreen()));
+        menu.Controls.Add(Button(labels[2], () => Settings(MainMenu)));
+        menu.Controls.Add(Button(labels[3], ConfirmExit));
+        var art = new ArtPanel { Dock = DockStyle.Fill };
+        art.Paint += PaintShip;
+        split.Controls.Add(art, 1, 0);
+    }
+
+    private void Identify()
+    {
+        var labels = catalog.Labels("NOMBRE");
+        var column = Stack(Page(labels[0], labels[1]));
+        var name = new TextBox { Width = 360, MaxLength = 60, BackColor = Surface, ForeColor = Color.White };
+        column.Controls.Add(name);
+        var confirm = Button(labels[2], () => _ = CreateGame(name.Text.Trim()));
+        confirm.Enabled = false;
+        name.TextChanged += (_, _) => confirm.Enabled = !string.IsNullOrWhiteSpace(name.Text);
+        name.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { confirm.PerformClick(); e.SuppressKeyPress = true; } };
+        column.Controls.Add(confirm);
+        column.Controls.Add(Button(labels[3], MainMenu));
+        name.Focus();
+    }
+
+    private async Task CreateGame(string name)
+    {
+        var newGame = new GameSession { Id = Guid.NewGuid(), Name = name };
+        if (!await Database(() => saves.SaveAsync(newGame, create: true))) return;
+        session = newGame;
+        completionSaved = false;
+        PhaseSelect();
     }
 
     private void PhaseSelect()
     {
-        Page("SELECCIÓN DE FASE", "Completa una fase para desbloquear la siguiente");
-        var area = ButtonArea();
-        area.Controls.Add(ActionButton("FASE 0 · TUTORIAL", (_, _) => Introduction()));
-        foreach (var name in new[] { "FASE 1 · SEÑAL PERDIDA", "FASE 2 · PROTOCOLO IRIS", "FASE 3 · ÚLTIMA TRANSMISIÓN" })
+        var labels = catalog.Labels("FASES");
+        var page = Page(labels[0], Session.Name);
+        var cards = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1 };
+        for (int i = 0; i < PhaseNames.Length; i++)
         {
-            var b = ActionButton("🔒 " + name, (_, _) => Notice("Fase bloqueada."));
-            b.Enabled = false;
-            area.Controls.Add(b);
-        }
-        area.Controls.Add(ActionButton("VOLVER", (_, _) => Menu()));
-    }
-
-    private void Introduction()
-    {
-        room = 1; x = 1; y = 3; hp = 100; kits = 0; robotDefeated = circuitRestored = tutorialJarvisUsed = false; jarvisCharges = 6;
-        Page("FASE 0 · TUTORIAL", "INTRODUCCIÓN");
-        var narrative = new Label { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter,
-            Padding = new Padding(65), Font = new Font("Segoe UI", 17), ForeColor = Muted,
-            Text = "Año 2187. La nave IRIS lleva un mes sin responder.\n\n" +
-                "La red NEXUS te envía a investigar la pérdida de contacto. " +
-                "Entrarás por el módulo de mantenimiento.\n\n" +
-                "JARVIS: «Te acompañaré durante la misión, cadete. Mantente alerta.»" };
-        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 90 };
-        var next = ActionButton("CONTINUAR", (_, _) => Explore());
-        next.Location = new Point(18, 18);
-        bottom.Controls.Add(next);
-        root.Controls.Add(narrative);
-        root.Controls.Add(bottom);
-        bottom.BringToFront();
-    }
-
-    private void Explore()
-    {
-        Page($"FASE 0 · SALA {room:00}", rooms[room - 1]);
-        var bottom = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 112, ColumnCount = 2 };
-        bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        bottom.Controls.Add(ActionButton("INTERACTUAR (E)", (_, _) => Interact()), 0, 0);
-        bottom.Controls.Add(ActionButton("PAUSA", (_, _) => Pause()), 1, 0);
-        root.Controls.Add(bottom);
-        footer.Text = "";
-        root.Controls.Add(footer);
-        footer.BringToFront();
-        board = new GameBoard { Dock = DockStyle.Fill, BackColor = Background };
-        board.Paint += PaintBoard;
-        root.Controls.Add(board);
-        board.BringToFront();
-        UpdateFooter();
-        board.Focus();
-    }
-
-    private void PaintBoard(object? sender, PaintEventArgs e)
-    {
-        if (board is null) return;
-        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        int tile = Math.Max(35, Math.Min((board.ClientSize.Width - 100) / 9, (board.ClientSize.Height - 45) / 7));
-        int left = (board.ClientSize.Width - tile * 9) / 2;
-        int top = (board.ClientSize.Height - tile * 7) / 2;
-        using var floor = new SolidBrush(Color.FromArgb(18, 33, 52));
-        using var wall = new SolidBrush(Color.FromArgb(32, 49, 70));
-        using var gridPen = new Pen(Color.FromArgb(46, 75, 102));
-        for (int ix = 0; ix < 9; ix++)
-        for (int iy = 0; iy < 7; iy++)
-        {
-            var r = new Rectangle(left + ix * tile, top + iy * tile, tile, tile);
-            e.Graphics.FillRectangle(ix == 0 || ix == 8 || iy == 0 || iy == 6 ? wall : floor, r);
-            e.Graphics.DrawRectangle(gridPen, r);
-        }
-        void Marker(int px, int py, Color color, string label)
-        {
-            var r = new Rectangle(left + px * tile + tile / 5, top + py * tile + tile / 5, tile * 3 / 5, tile * 3 / 5);
-            using var brush = new SolidBrush(color);
-            e.Graphics.FillRectangle(brush, r);
-            using var font = new Font("Segoe UI", Math.Max(10, tile / 5), FontStyle.Bold);
-            TextRenderer.DrawText(e.Graphics, label, font, r, Color.White,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-        }
-        if (room == 1 && kits == 0) Marker(4, 3, Color.SeaGreen, "+");
-        if (room == 2 && !robotDefeated) Marker(5, 3, Color.Firebrick, "R");
-        if (room == 3 && !circuitRestored) Marker(5, 3, Color.DarkOrange, "C");
-        Marker(7, 3, Color.MediumPurple, ">");
-        DrawOrb(e.Graphics, left + Math.Max(0, x - 1) * tile + tile / 2, top + y * tile + tile / 2, tile);
-        DrawCadet(e.Graphics, left + x * tile + tile / 2, top + y * tile + tile / 2, tile);
-    }
-
-    private static void DrawOrb(Graphics g, int x, int y, int tile)
-    {
-        using var glow = new SolidBrush(Color.FromArgb(55, 45, 213, 239));
-        using var core = new SolidBrush(Cyan);
-        g.FillEllipse(glow, x - tile / 3, y - tile / 3, tile * 2 / 3, tile * 2 / 3);
-        g.FillEllipse(core, x - tile / 8, y - tile / 8, tile / 4, tile / 4);
-    }
-
-    private static void DrawCadet(Graphics g, int x, int y, int tile)
-    {
-        using var suit = new SolidBrush(Color.FromArgb(220, 230, 240));
-        using var visor = new SolidBrush(Cyan);
-        g.FillRectangle(suit, x - tile / 5, y - tile / 10, tile * 2 / 5, tile / 2);
-        g.FillEllipse(suit, x - tile / 5, y - tile * 2 / 5, tile * 2 / 5, tile * 2 / 5);
-        g.FillEllipse(visor, x - tile / 7, y - tile / 3, tile * 2 / 7, tile / 6);
-    }
-
-    private void UpdateFooter()
-    {
-        string goal = room switch
-        {
-            1 => kits > 0 ? "DIRÍGETE A LA SALIDA (>)" : "RECOGE EL KIT MÉDICO (+)",
-            2 => robotDefeated ? "DIRÍGETE A LA SALIDA (>)" : "ACÉRCATE AL ROBOT (R)",
-            _ => circuitRestored ? "DIRÍGETE A LA SALIDA (>)" : "RESTAURA EL CIRCUITO (C)"
-        };
-        footer.Text = $"OBJETIVO: {goal}    |    VIDA: {hp}/100    |    KITS: {kits}    |    WASD / FLECHAS · E";
-    }
-
-    private void Interact()
-    {
-        bool Near(int px, int py) => Math.Abs(x - px) + Math.Abs(y - py) <= 1;
-        if (room == 1 && kits == 0 && Near(4, 3)) { kits = 1; Notice("Kit médico obtenido."); }
-        else if (room == 2 && !robotDefeated && Near(5, 3)) EncounterPrompt();
-        else if (room == 3 && !circuitRestored && Near(5, 3)) Circuit();
-        else if (Near(7, 3))
-        {
-            if (room == 1 && kits > 0 || room == 2 && robotDefeated)
-            { room++; x = 1; y = 3; Explore(); return; }
-            if (room == 3 && circuitRestored) { PhaseComplete(); return; }
-            Notice("Acceso bloqueado. Completa el objetivo.");
-        }
-        else Notice("No hay elementos interactivos al alcance.");
-        UpdateFooter();
-        board?.Invalidate();
-    }
-
-    private void EncounterPrompt()
-    {
-        if (MessageBox.Show("Amenaza detectada. ¿ENFRENTAR?", "NEXUS", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
-        robotHp = 40;
-        remainingPa = 3;
-        robotReservedPa = 0;
-        turnNumber = 1;
-        actions.Clear();
-        Combat();
-    }
-
-    private void Combat()
-    {
-        Page("ENCUENTRO · ROBOT DE SEGURIDAD", $"TURNO {turnNumber}   ·   CADETE {hp}/100 HP (DAÑO 20)   ·   ROBOT {robotHp}/40 HP (DAÑO 10)");
-        var area = ButtonArea();
-        var summary = new Label
-        {
-            Text = $"PA DISPONIBLES: {remainingPa}     |     ATAQUES: {actions.Count(a => a == "ATACAR")}     DEFENSAS: {actions.Count(a => a == "DEFENDER")}     RESERVAS: {actions.Count(a => a == "RESERVAR")}     KITS: {kits}     JARVIS: {jarvisCharges}/6",
-            ForeColor = Cyan, Font = bodyFont, AutoSize = true, Margin = new Padding(12)
-        };
-        area.Controls.Add(summary);
-        void Choose(string action)
-        {
-            if (remainingPa <= 0) return;
-            actions.Add(action);
-            remainingPa--;
-            Combat();
-        }
-        if (jarvisCharges > 0)
-            area.Controls.Add(ActionButton($"JARVIS · PA ESPECIALES ({jarvisCharges})", (_, _) => JarvisSelector()));
-        if (remainingPa > 0)
-        {
-            if (kits > actions.Count(a => a == "KIT"))
+            int phase = i;
+            cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            bool unlocked = Session.IsUnlocked(i);
+            var card = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Margin = new Padding(6), BorderStyle = BorderStyle.FixedSingle };
+            var title = Caption($"FASE {i}\n{PhaseNames[i]}", 16, unlocked ? Cyan : Muted);
+            title.Dock = DockStyle.Fill;
+            card.Controls.Add(title);
+            var start = Button(unlocked ? labels[2] : labels[1], () =>
             {
-                var kit = ActionButton("USAR KIT · 1 PA (+30 HP)", (_, _) => Choose("KIT"));
-                kit.Enabled = hp < 100;
-                area.Controls.Add(kit);
+                if (phase == 0 || Session.StartNextPhase(phase)) StartPhase();
+            });
+            start.Dock = DockStyle.Bottom;
+            start.Enabled = unlocked && i <= GameSession.LastPlayablePhase && !Session.CompletedPhases.Contains(i);
+            card.Controls.Add(start);
+            cards.Controls.Add(card, i, 0);
+        }
+
+        var bar = Bar(page);
+        bar.Controls.Add(Button(labels[3], MainMenu));
+        page.Controls.Add(cards);
+        bar.SendToBack();
+    }
+
+    private async Task LoadScreen()
+    {
+        IReadOnlyList<SavedGame> entries = [];
+        if (!await Database(async () => entries = await saves.ListAsync())) return;
+        var labels = catalog.Labels("CARGA");
+        var page = Page(labels[0], entries.Count == 0 ? labels[4] : "SELECCIONA UN GUARDADO");
+        var list = new ListBox { Dock = DockStyle.Fill, BackColor = Surface, ForeColor = Color.White };
+        foreach (var entry in entries) list.Items.Add(entry);
+        var bar = Bar(page);
+        var load = Button(labels[1], () => { if (list.SelectedItem is SavedGame entry) _ = Resume(entry.Id); }, 145);
+        var delete = Button(labels[2], () => { if (list.SelectedItem is SavedGame entry) _ = DeleteSave(entry); }, 145, Red);
+        load.Enabled = delete.Enabled = false;
+        list.SelectedIndexChanged += (_, _) => load.Enabled = delete.Enabled = list.SelectedItem is SavedGame;
+        list.DoubleClick += (_, _) => load.PerformClick();
+        bar.Controls.Add(load);
+        bar.Controls.Add(delete);
+        bar.Controls.Add(Button(labels[3], MainMenu, 145));
+        page.Controls.Add(list);
+        bar.SendToBack();
+    }
+
+    private async Task Resume(Guid id)
+    {
+        GameSession? loaded = null;
+        if (!await Database(async () => loaded = await saves.LoadAsync(id))) return;
+        session = loaded;
+        completionSaved = Session.PhaseComplete;
+        if (Session.MissionComplete) MissionCompleteScreen();
+        else if (Session.PhaseComplete) PhaseCompleteScreen();
+        else if (Session.Room == GameSession.FirstRoom(Session.Phase)
+            && !Session.SeenEvents.Contains($"JARVIS_F{Session.Phase}_INICIO")) StartPhase();
+        else Explore();
+    }
+
+    private async Task DeleteSave(SavedGame entry)
+    {
+        if (!Confirm("ELIMINAR", $"¿Eliminar la partida de {entry.Name}?", "ELIMINAR")) return;
+        if (await Database(() => saves.DeleteAsync(entry.Id))) await LoadScreen();
+    }
+
+    private async Task<bool> Database(Func<Task> action)
+    {
+        if (busy) return false;
+        busy = true;
+        root.Enabled = false;
+        UseWaitCursor = true;
+        try
+        {
+            await action();
+            return true;
+        }
+        catch (Exception error) when (error is Microsoft.Data.SqlClient.SqlException or InvalidDataException
+            or System.Text.Json.JsonException or ArgumentException)
+        {
+            System.Diagnostics.Trace.TraceError("{0}", error);
+            Notice("PARTIDA NO DISPONIBLE", error is InvalidDataException ? error.Message
+                : "No se pudo acceder a la partida en SQL Server. Comprueba la conexión y vuelve a intentarlo.");
+            return false;
+        }
+        finally
+        {
+            busy = false;
+            root.Enabled = true;
+            UseWaitCursor = false;
+        }
+    }
+
+    private void Settings(Action back)
+    {
+        var labels = catalog.Labels("CONFIG");
+        var column = Stack(Page(labels[0], "WASD / FLECHAS   ·   E INTERACTUAR   ·   I INVENTARIO"));
+        TrackBar Volume(string title, int value)
+        {
+            var label = Caption($"{title}  ·  {value} %", 11);
+            label.AutoSize = true;
+            var track = new TrackBar { Width = 360, Minimum = 0, Maximum = 100, Value = value, TickFrequency = 10 };
+            track.ValueChanged += (_, _) => label.Text = $"{title}  ·  {track.Value} %";
+            column.Controls.Add(label);
+            column.Controls.Add(track);
+            return track;
+        }
+
+        var music = Volume(labels[1], audio.Music);
+        var effects = Volume(labels[2], audio.Effects);
+        var voice = Volume(labels[3], audio.Voice);
+        var fullscreen = new CheckBox { Text = "PANTALLA COMPLETA", AutoSize = true, Checked = FormBorderStyle == FormBorderStyle.None };
+        column.Controls.Add(fullscreen);
+        column.Controls.Add(Button(labels[4], () =>
+        {
+            audio.Music = music.Value;
+            audio.Effects = effects.Value;
+            audio.Voice = voice.Value;
+            if (fullscreen.Checked != (FormBorderStyle == FormBorderStyle.None))
+            {
+                WindowState = FormWindowState.Normal;
+                FormBorderStyle = fullscreen.Checked ? FormBorderStyle.None : FormBorderStyle.Sizable;
+                WindowState = fullscreen.Checked ? FormWindowState.Maximized : FormWindowState.Normal;
             }
-            area.Controls.Add(ActionButton("ATACAR · 1 PA", (_, _) => Choose("ATACAR")));
-            area.Controls.Add(ActionButton("DEFENDER · 1 PA", (_, _) => Choose("DEFENDER")));
-            area.Controls.Add(ActionButton("RESERVAR · 1 PA", (_, _) => Choose("RESERVAR")));
-        }
-        if (actions.Count > 0)
-            area.Controls.Add(ActionButton("DESHACER ÚLTIMA ACCIÓN", (_, _) =>
-            {
-                actions.RemoveAt(actions.Count - 1);
-                remainingPa++;
-                Combat();
-            }));
-        if (remainingPa == 0)
-            area.Controls.Add(ActionButton("CONFIRMAR TURNO", (_, _) => { if (room == 2 && !tutorialJarvisUsed) { Notice("TUTORIAL: utiliza al menos un PA especial de JARVIS."); return; } ResolveCombat(); }));
+
+            back();
+        }));
+        column.Controls.Add(Button(labels[5], back));
     }
 
-    private void JarvisSelector()
+    private void ConfirmExit()
     {
-        using var dialog = new Form { Text = "NEXUS · JARVIS", ClientSize = new Size(450, 330),
-            StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog,
-            MaximizeBox = false, BackColor = Background, ForeColor = Color.White };
-        int selected = 0;
-        var info = new Label { Text = "Selecciona las cargas una por una. Cada carga concede +1 PA.",
-            Dock = DockStyle.Top, Height = 75, ForeColor = Muted, TextAlign = ContentAlignment.MiddleCenter };
-        var count = new Label { Dock = DockStyle.Top, Height = 55, ForeColor = Cyan,
-            Font = new Font("Segoe UI", 18, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter };
-        void UpdateCount() => count.Text = $"PA seleccionados: {selected} / {jarvisCharges}";
-        UpdateCount();
-        var area = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), AutoScroll = true };
-        foreach (var (title, change) in new[] { ("+ 1 PA", 1), ("- 1 PA", -1) })
-        {
-            var button = ActionButton(title, (_, _) => { selected = Math.Clamp(selected + change, 0, jarvisCharges); UpdateCount(); });
-            button.Width = 195;
-            area.Controls.Add(button);
-        }
-        var confirm = ActionButton("CONFIRMAR", (_, _) => { if (selected > 0) dialog.DialogResult = DialogResult.OK; });
-        confirm.Width = 195;
-        var cancel = ActionButton("CANCELAR", (_, _) => dialog.DialogResult = DialogResult.Cancel);
-        cancel.Width = 195;
-        area.Controls.Add(confirm);
-        area.Controls.Add(cancel);
-        dialog.Controls.Add(area);
-        dialog.Controls.Add(count);
-        dialog.Controls.Add(info);
-        if (dialog.ShowDialog(this) != DialogResult.OK) return;
-        jarvisCharges -= selected;
-        remainingPa += selected;
-        tutorialJarvisUsed = true;
-        Combat();
+        if (!AskToExit()) return;
+        exiting = true;
+        Close();
     }
 
-    private void ResolveCombat()
+    private bool AskToExit()
     {
-        int playerAttacks = actions.Count(a => a == "ATACAR");
-        int playerDefenses = actions.Count(a => a == "DEFENDER");
-        int playerReserved = actions.Count(a => a == "RESERVAR");
-        int usedKits = actions.Count(a => a == "KIT");
-        int healing = Math.Min(100 - hp, usedKits * 30);
-        hp += healing;
-        kits -= usedKits;
-        int robotPa = 3 + robotReservedPa;
-        robotReservedPa = 0;
-        var enemyActions = new List<string>();
-        // The robot evaluates its own survival and the player's visible defenses.
-        // Its choices are not fixed; each action consumes one PA.
-        for (int i = 0; i < robotPa; i++)
+        var labels = catalog.Labels("CONFIRMAR_SALIDA");
+        return Confirm(labels[0], "Se perderá el progreso no guardado.", labels[2]);
+    }
+
+    private void StartPhase()
+    {
+        completionSaved = false;
+        Loading($"FASE {Session.Phase} · {PhaseNames[Session.Phase]}", "CARGANDO FASE", () =>
         {
-            int roll = Random.Shared.Next(100);
-            if (robotHp <= 20 && playerAttacks > 0 && roll < 65)
-                enemyActions.Add("DEFENDER");
-            else if (playerDefenses >= 2 && roll < 45)
-                enemyActions.Add("RESERVAR");
-            else if (roll < 62)
-                enemyActions.Add("ATACAR");
-            else if (roll < 82)
-                enemyActions.Add("DEFENDER");
-            else
-                enemyActions.Add("RESERVAR");
-        }
-        int robotAttacks = enemyActions.Count(a => a == "ATACAR");
-        int robotDefenses = enemyActions.Count(a => a == "DEFENDER");
-        robotReservedPa = enemyActions.Count(a => a == "RESERVAR");
-        int effectiveAttacks = Math.Max(0, playerAttacks - robotDefenses);
-        int effectiveRobotAttacks = Math.Max(0, robotAttacks - playerDefenses);
-        int dealt = Math.Min(robotHp, effectiveAttacks * 20);
-        int received = Math.Min(hp, effectiveRobotAttacks * 10);
-        robotHp -= dealt;
-        hp -= received;
-        int nextPa = 3 + playerReserved;
-        int nextRobotPa = 3 + robotReservedPa;
-        Page("RESULTADO DEL TURNO", "RESOLUCIÓN TÁCTICA");
-        var results = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3,
-            Padding = new Padding(36, 12, 36, 12), BackColor = Background };
-        results.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        results.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        results.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
-        results.RowStyles.Add(new RowStyle(SizeType.Percent, 32));
-        results.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
-        Label ResultCard(string heading, string details, Color accent)
-        {
-            return new Label { Text = heading + "\n\n" + details, Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold), ForeColor = accent,
-                BackColor = Surface, TextAlign = ContentAlignment.MiddleCenter, Margin = new Padding(9),
-                BorderStyle = BorderStyle.FixedSingle };
-        }
-        results.Controls.Add(ResultCard("CADETE · TURNO " + turnNumber,
-            $"⚔ ATACAR: {playerAttacks}\n🛡 DEFENDER: {playerDefenses}\n↗ RESERVAR: {playerReserved}\n✚ KIT: {usedKits}",
-            Cyan), 0, 0);
-        results.Controls.Add(ResultCard("ROBOT DE SEGURIDAD",
-            $"⚔ ATACAR: {robotAttacks}\n🛡 DEFENDER: {robotDefenses}\n↗ RESERVAR: {robotReservedPa}",
-            Color.FromArgb(244, 119, 125)), 1, 0);
-        results.Controls.Add(ResultCard("DAÑO Y CURACIÓN",
-            $"Infligido: {dealt} HP    Recibido: {received} HP\nCuración: +{healing} HP\nBloqueos: Cadete {Math.Min(robotAttacks, playerDefenses)} · Robot {Math.Min(playerAttacks, robotDefenses)}",
-            Color.White), 0, 1);
-        results.Controls.Add(ResultCard("ESTADO ACTUAL",
-            $"Cadete: {hp}/100 HP    Robot: {robotHp}/40 HP\nPróximo turno: Cadete {nextPa} PA · Robot {nextRobotPa} PA",
-            Color.White), 1, 1);
-        var hint = new Label { Text = "Revisa las acciones de ambos combatientes y pulsa CONTINUAR cuando estés listo.",
-            Dock = DockStyle.Fill, ForeColor = Muted, TextAlign = ContentAlignment.MiddleCenter };
-        results.Controls.Add(hint, 0, 2);
-        results.SetColumnSpan(hint, 2);
-        root.Controls.Add(results);
-        results.BringToFront();
-        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 85 };
-        var next = ActionButton("CONTINUAR", (_, _) =>
-        {
-            if (hp <= 0) { Failure(); return; }
-            if (robotHp <= 0) { robotDefeated = true; Explore(); return; }
-            remainingPa = nextPa;
-            turnNumber++;
-            actions.Clear();
-            Combat();
+            Speak(Session.Room, $"entrada_fase_{Session.Phase}");
+            Explore();
         });
-        next.Location = new Point(30, 14);
-        bottom.Controls.Add(next);
-        root.Controls.Add(bottom);
-        bottom.BringToFront();
-    }
-
-    private void Failure()
-    {
-        Page("MISIÓN FALLIDA", "EL CADETE HA SIDO ELIMINADO");
-        var area = ButtonArea();
-        area.Controls.Add(ActionButton("REINTENTAR FASE", (_, _) => Introduction()));
-        area.Controls.Add(ActionButton("SALIR AL MENÚ", (_, _) => Menu()));
-    }
-
-    private void Circuit()
-    {
-        using var puzzle = new CircuitPuzzle();
-        if (puzzle.ShowDialog(this) == DialogResult.OK && puzzle.Solved)
-        {
-            circuitRestored = true;
-            UpdateFooter();
-            board?.Invalidate();
-        }
-    }
-
-    private void PhaseComplete()
-    {
-        Page("FASE 0 COMPLETADA", "SISTEMAS DE ACCESO RESTABLECIDOS");
-        var area = ButtonArea();
-        area.Controls.Add(ActionButton("CONTINUAR · FASE 1 (EN DESARROLLO)", (_, _) => Notice("La Fase 1 todavía no está implementada. No se puede avanzar aún.")));
-        area.Controls.Add(ActionButton("VOLVER AL MENÚ", (_, _) => Menu()));
     }
 
     private void Pause()
     {
-        if (MessageBox.Show("¿Volver al menú? El guardado aún no está disponible.",
-            "PAUSA", MessageBoxButtons.YesNo) == DialogResult.Yes) Menu();
+        var labels = catalog.Labels("PAUSA");
+        var page = Page(labels[0], $"FASE {Session.Phase}  /  SALA {Session.Room:00}  /  {Session.Name}");
+        var bar = Bar(page);
+        var status = Caption("", 11, Cyan);
+        status.Width = 250;
+        status.Height = 44;
+        bar.Controls.Add(Button(labels[3], () => _ = SaveFromPause(status)));
+        bar.Controls.Add(status);
+        var composition = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 3 };
+        composition.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        composition.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 420));
+        composition.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        composition.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+        composition.RowStyles.Add(new RowStyle(SizeType.Absolute, 218));
+        composition.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+        var frame = new ArtPanel { Dock = DockStyle.Fill, BackColor = Surface };
+        frame.Paint += PaintHolographicFrame;
+        var column = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
+            Padding = new Padding(28, 25, 28, 20), BackColor = Color.Transparent
+        };
+        column.Controls.Add(Button(catalog.Labels("RESULTADO")[4], Explore, 354));
+        column.Controls.Add(Button(labels[2], () => Settings(Pause), 354));
+        column.Controls.Add(Button(labels[4], () =>
+        {
+            if (Confirm("¿SALIR AL MENÚ?", "Se perderá el progreso no guardado.", labels[4])) MainMenu();
+        }, 354));
+        frame.Controls.Add(column);
+        composition.Controls.Add(frame, 1, 1);
+        page.Controls.Add(composition);
+        bar.SendToBack();
     }
 
-    private static void Notice(string text) => MessageBox.Show(text, "NEXUS — PROTOCOLO IRIS");
-
-    private sealed class GameBoard : Panel
+    private async Task SaveFromPause(Label status)
     {
-        public GameBoard() { DoubleBuffered = true; TabStop = true; }
+        if (await Database(() => saves.SaveAsync(Session))) status.Text = "PARTIDA GUARDADA";
+    }
+
+    private void PhaseCompleteScreen()
+    {
+        var labels = catalog.Labels("FINAL_FASE");
+        var page = Page(labels[0], $"FASE {Session.Phase}  /  {PhaseNames[Session.Phase]}");
+        var bar = Bar(page);
+        var art = Portrait();
+        art.Dock = DockStyle.Fill;
+        art.Paint += PaintHolographicFrame;
+        page.Controls.Add(art);
+        var next = Button(labels[1], PhaseSelect);
+        next.Enabled = completionSaved;
+        bar.Controls.Add(next);
+        bar.Controls.Add(Button(labels[2], () => _ = SaveCompletion(MainMenu)));
+        bar.SendToBack();
+        if (!completionSaved) _ = SaveCompletion(() => next.Enabled = true);
+    }
+
+    private async Task SaveCompletion(Action next)
+    {
+        if (!await Database(() => saves.SaveAsync(Session))) return;
+        completionSaved = true;
+        next();
+    }
+
+    private void MissionCompleteScreen()
+    {
+        var labels = catalog.Labels("FINAL_JUEGO");
+        var page = Page(labels[0], labels[1], Color.Orange);
+        var art = Portrait();
+        art.Dock = DockStyle.Fill;
+        art.Paint += PaintHolographicFrame;
+        page.Controls.Add(art);
+        var bar = Bar(page);
+        bar.Controls.Add(Button(labels[2], () =>
+        {
+            if (completionSaved) MainMenu();
+            else _ = SaveCompletion(MainMenu);
+        }));
+        bar.SendToBack();
+        if (!completionSaved) _ = SaveCompletion(() => { });
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) loading.Dispose();
+        base.Dispose(disposing);
+    }
+
+    private sealed class ArtPanel : Panel
+    {
+        public ArtPanel()
+        {
+            DoubleBuffered = true;
+            ResizeRedraw = true;
+        }
     }
 }
