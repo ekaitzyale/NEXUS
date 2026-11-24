@@ -27,7 +27,14 @@ internal sealed class CombatTurn(int hp, int kits, int charges, int enemyMaxHp =
     public int Number { get; private set; } = 1;
     public bool UsedCharge { get; private set; }
     public int SelectableCharges => result is null ? Math.Min(Charges, MaxPa - RemainingPa - actions.Count) : 0;
-    public bool CanUseKit => Hp < GameSession.MaxHp && Kits > actions.Count(a => a == CombatAction.UseKit);
+    public bool CanUseKit
+    {
+        get
+        {
+            int queuedKits = actions.Count(action => action == CombatAction.UseKit);
+            return queuedKits < Kits && queuedKits * KitHealing < GameSession.MaxHp - Hp;
+        }
+    }
 
     public bool AllocateCharges(int count)
     {

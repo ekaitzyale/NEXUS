@@ -2,9 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace WindowsForms;
 
-internal sealed record RoomDefinition(int Phase, int Number, string Name, string Objective);
-internal sealed record TerminalDocument(string Id, string Title, string Date, string Origin, string Text);
-internal sealed record JarvisLine(string Id, int Phase, int Room, string Trigger, string Text, bool Blocking);
 internal sealed record PhaseResources(int Hp, int Kits, int Charges);
 internal sealed record RoomEnemy(string Id, Point Position, int MaxHp = 40, int Damage = 10)
 {

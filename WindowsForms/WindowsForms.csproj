@@ -10,9 +10,15 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.8" />
-    <EmbeddedResource Include="../pacot_codex/02_Narrativa/*.json" LogicalName="Narrativa.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../pacot_codex/02_Narrativa/*.json" LogicalName="Narrativa.%(Filename)%(Extension)" Link="Resources/Narrative/%(Filename)%(Extension)" />
     <Compile Remove="obj/**/*.cs" />
     <InternalsVisibleTo Include="Nexus.Phase0.Checks" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Forms/Prototypes/Form1.cs" SubType="Form" />
+    <Compile Update="Forms/Prototypes/Form1.Designer.cs" DependentUpon="Form1.cs" />
+    <EmbeddedResource Update="Forms/Prototypes/Form1.resx" DependentUpon="Form1.cs" />
+    <Compile Update="Forms/IrisGameForm.Play.cs;Forms/IrisGameForm.Art.cs;Forms/IrisGameForm.Inventory.cs" DependentUpon="IrisGameForm.cs" />
   </ItemGroup>
 
 </Project>

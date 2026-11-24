@@ -1,4 +1,6 @@
 <Solution>
-  <Project Path="Nexus.csproj" />
+  <Folder Name="/Consola original/">
+    <Project Path="Nexus.csproj" />
+  </Folder>
   <Project Path="WindowsForms/WindowsForms.csproj" />
 </Solution>
